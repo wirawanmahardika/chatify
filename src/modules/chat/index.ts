@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { authService } from '../auth/service';
 import { chatService } from './service';
-import { ChatPage, ChatPanel, ChatPartial, Chats } from './views';
+import { ChatPage, ChatPanel, ChatPartial, Chats, ContactsPage } from './views';
 import type { User } from '../auth/model';
 
 interface WSClientState {
@@ -117,6 +117,19 @@ export const chatModule = new Elysia()
             query: t.Optional(t.Object({ beforeDate: t.Date() })),
         }
     )
+
+    .get('/contact', async ({ user, redirect }) => {
+        try {
+            if (!user) return redirect('/auth/login');
+            return ContactsPage({
+                contacts: [],
+                user: user,
+            });
+        } catch (error) {
+            return new Response(null, { status: 500 });
+        }
+    })
+
     .ws('/ws', {
         async open(ws) {
             const user = ws.data.user;

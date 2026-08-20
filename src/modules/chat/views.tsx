@@ -2,6 +2,7 @@ import { Html } from '@elysiajs/html';
 import type { MessageWithUser, RoomWithDetails } from './model';
 import { Layout, Scripts } from '../../shared/views/layout';
 import { User } from '../auth/model';
+import { DesktopNavigation, MobileNavigation } from '../../shared/views/components';
 
 interface ChatPageProps {
     user: User;
@@ -20,7 +21,7 @@ export const ChatPage = ({ userRooms, user, availableUsers }: ChatPageProps) => 
     return (
         <Layout title="Obrolan" script={scripts}>
             <div
-                x-data={'{ currentPath:  window.location.pathname, activeRoomId: null  }'}
+                x-data={'{ activeRoomId: null  }'}
                 class="bg-base-200 min-h-screen flex items-center justify-center font-sans text-base-content"
             >
                 <div
@@ -28,84 +29,7 @@ export const ChatPage = ({ userRooms, user, availableUsers }: ChatPageProps) => 
                     ws-connect="/ws"
                     class="w-full h-screen bg-base-100 md:rounded-2xl md:shadow-2xl flex flex-col md:flex-row border border-base-300 overflow-hidden"
                 >
-                    <nav class="hidden md:flex flex-col items-center py-4 px-2 bg-base-200 border-r border-base-300 gap-4 shrink-0">
-                        <div class="flex-1 flex flex-col gap-2">
-                            {/* Chat / Messages Link */}
-                            <a
-                                href="/"
-                                title="Obrolan"
-                                class="p-2.5 rounded-xl"
-                                x-bind:class={
-                                    "currentPath === '/' ? 'bg-primary text-primary-content transition shadow-sm' : 'text-base-content/70 hover:bg-base-300 hover:text-base-content transition'"
-                                }
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="1.5"
-                                    stroke="currentColor"
-                                    class="size-6"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"
-                                    />
-                                </svg>
-                            </a>
-
-                            {/* Contacts Link */}
-                            <a
-                                href="/contact"
-                                title="Kontak"
-                                class="p-2.5 rounded-xl"
-                                x-bind:class={
-                                    "currentPath.startsWith('/contact') ? 'bg-primary text-primary-content transition shadow-sm' : 'text-base-content/70 hover:bg-base-300 hover:text-base-content transition'"
-                                }
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="1.5"
-                                    stroke="currentColor"
-                                    class="w-5 h-5"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
-                                    />
-                                </svg>
-                            </a>
-                        </div>
-
-                        {/* Settings Link */}
-                        <a
-                            href="/profile"
-                            title="Pengaturan"
-                            class="p-2.5 rounded-xl mt-auto"
-                            x-bind:class={
-                                "currentPath.startsWith('/profile') ? 'bg-primary text-primary-content transition shadow-sm' : 'text-base-content/70 hover:bg-base-300 hover:text-base-content transition'"
-                            }
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="size-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                                />
-                            </svg>
-                        </a>
-                    </nav>
+                    <DesktopNavigation />
 
                     {/* Left Sidebar */}
                     <div class="w-full md:w-80 lg:w-96 border-r border-base-300 flex flex-col bg-base-100 shrink-0 h-full md:flex!">
@@ -288,7 +212,7 @@ export const ChatPage = ({ userRooms, user, availableUsers }: ChatPageProps) => 
                     </div>
                 </div>
 
-                <Dock />
+                <MobileNavigation />
             </div>
 
             {/* Modal - New Chat Selection */}
@@ -551,63 +475,298 @@ export const ChatPanel = ({
     );
 };
 
-function Dock() {
-    return (
-        <div class="dock md:hidden">
-            <button x-bind:class={"currentPath === '/' && 'dock-active'"}>
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                    class="size-6"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"
-                    />
-                </svg>
-                <span class="dock-label">Chat</span>
-            </button>
-
-            <button x-bind:class={"currentPath.startsWith('/contact') && 'dock-active'"}>
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                    class="w-5 h-5"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
-                    />
-                </svg>
-                <span class="dock-label">Kontak</span>
-            </button>
-
-            <button x-bind:class={"currentPath.startsWith('/profile') && 'dock-active'"}>
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                    class="size-6"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                    />
-                </svg>
-
-                <span class="dock-label">Profil</span>
-            </button>
-        </div>
-    );
+interface ContactsPageProps {
+    user: User;
+    contacts: User[];
 }
+
+export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
+    const scripts: Scripts = {
+        alpine: true,
+        htmx: true,
+        customScript: [{ src: '/public/js/chat-page.js', defer: true }],
+    };
+
+    return (
+        <Layout title="Kelola Kontak" script={scripts}>
+            <div
+                x-data="{ search: '' }"
+                class="bg-base-200 min-h-screen flex items-center justify-center font-sans text-base-content"
+            >
+                <div class="w-full h-screen bg-base-100 md:rounded-2xl md:shadow-2xl flex flex-col md:flex-row border border-base-300 overflow-hidden">
+                    <DesktopNavigation />
+
+                    {/* Left Sidebar - Contacts Management List */}
+                    <div class="w-full md:w-80 lg:w-96 border-r border-base-300 flex flex-col bg-base-100 shrink-0 h-full md:flex!">
+                        {/* Profile Header */}
+                        <div class="p-4 border-b border-base-300 flex justify-between items-center bg-base-200/50">
+                            <div class="flex items-center gap-3">
+                                <div class="avatar placeholder">
+                                    <div class="bg-primary text-primary-content rounded-full w-10 h-10 flex items-center justify-center font-bold">
+                                        {user.username.charAt(0).toUpperCase()}
+                                    </div>
+                                </div>
+                                <div class="overflow-hidden cursor-pointer">
+                                    <h2 class="font-bold text-sm truncate">{user.username}</h2>
+                                    <span
+                                        class="text-[11px] text-success flex items-center gap-1"
+                                        x-data={`{id: ${user.id}}`}
+                                        x-on:click="
+                                            navigator.clipboard.writeText(id);
+                                            alert('ID berhasil disalin');
+                                        "
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            strokeWidth={1.5}
+                                            stroke="currentColor"
+                                            class="size-4"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
+                                            />
+                                        </svg>
+                                        {user.id}
+                                    </span>
+                                </div>
+                            </div>
+                            <a
+                                href="/auth/logout"
+                                class="btn btn-ghost btn-circle btn-sm text-error"
+                                title="Logout"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                    class="w-5 h-5"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+                                    />
+                                </svg>
+                            </a>
+                        </div>
+
+                        {/* Direct Actions & Title */}
+                        <div class="p-3 border-b border-base-300 flex justify-between items-center bg-base-100">
+                            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">
+                                Daftar Kontak
+                            </span>
+                            <button
+                                onclick="add_contact_modal.showModal()"
+                                class="btn btn-primary btn-xs gap-1"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="2"
+                                    stroke="currentColor"
+                                    class="w-3.5 h-3.5"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M12 4.5v15m7.5-7.5h-15"
+                                    />
+                                </svg>
+                                Tambah Kontak
+                            </button>
+                        </div>
+
+                        {/* Search Bar */}
+                        <div class="p-3 border-b border-base-300 bg-base-100">
+                            <label class="input input-sm input-bordered flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    x-model="search"
+                                    class="grow text-xs"
+                                    placeholder="Filter nama atau ID kontak..."
+                                />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                    class="w-4 h-4 opacity-70"
+                                >
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+                                        clip-rule="evenodd"
+                                    />
+                                </svg>
+                            </label>
+                        </div>
+
+                        {/* Saved Contacts List */}
+                        <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                            {contacts.length === 0 ? (
+                                <div class="text-center p-6 text-base-content/50 text-sm">
+                                    Belum ada kontak tersimpan.
+                                    <br />
+                                    Klik <strong>"Tambah Kontak"</strong> untuk memasukkan ID.
+                                </div>
+                            ) : (
+                                contacts.map((contact) => (
+                                    <div
+                                        x-show={`!search || '${contact.username}'.toLowerCase().includes(search.toLowerCase()) || '${contact.id}'.includes(search)`}
+                                        class="flex items-center justify-between p-3 rounded-xl hover:bg-base-200 transition w-full group"
+                                    >
+                                        <div class="flex items-center gap-3 truncate">
+                                            <div class="avatar placeholder shrink-0">
+                                                <div class="bg-neutral text-neutral-content rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm">
+                                                    {contact.username.charAt(0).toUpperCase()}
+                                                </div>
+                                            </div>
+                                            <div class="truncate text-left">
+                                                <h3 class="font-semibold text-sm truncate">
+                                                    {contact.username}
+                                                </h3>
+                                                <span class="text-xs text-base-content/50 block truncate">
+                                                    ID: {contact.id}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            {/* Chat Direct Button */}
+                                            <form method="POST" action="/direct">
+                                                <input
+                                                    type="hidden"
+                                                    name="targetUserId"
+                                                    value={contact.id}
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-ghost btn-circle btn-xs text-primary"
+                                                    title="Mulai Chat"
+                                                >
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke-width="1.5"
+                                                        stroke="currentColor"
+                                                        class="w-4 h-4"
+                                                    >
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a.75.75 0 01-1.074-.85l1.052-3.76-A8.967 8.967 0 013 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                            {/* Delete Contact Button */}
+                                            <form
+                                                method="POST"
+                                                action={`/contacts/delete/${contact.id}`}
+                                            >
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-ghost btn-circle btn-xs text-error"
+                                                    title="Hapus Kontak"
+                                                >
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke-width="1.5"
+                                                        stroke="currentColor"
+                                                        class="w-4 h-4"
+                                                    >
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Main Panel */}
+                    <div class="flex-1 hidden md:flex flex-col h-full bg-base-100 overflow-hidden w-full">
+                        <div class="flex-1 flex flex-col items-center justify-center p-8 text-center bg-base-200/20">
+                            <div class="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                    class="w-8 h-8"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6 0 3.375 3.375 0 016 0zm6 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
+                                    />
+                                </svg>
+                            </div>
+                            <h2 class="text-xl font-bold mb-2">Manajemen Kontak</h2>
+                            <p class="text-base-content/60 max-w-sm mb-6 text-sm">
+                                Tambahkan kontak teman menggunakan ID unik mereka untuk menyimpan
+                                daftar relasi Anda.
+                            </p>
+                            <button onclick="add_contact_modal.showModal()" class="btn btn-primary">
+                                Tambah Kontak Baru
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <MobileNavigation />
+            </div>
+
+            {/* Modal - Add Contact via ID */}
+            <dialog id="add_contact_modal" class="modal">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg mb-4">Tambah Kontak Baru</h3>
+                    <form method="POST" action="/contacts/add" class="space-y-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">ID Kontak Teman</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="contactUserId"
+                                placeholder="Masukkan ID Pengguna..."
+                                class="input input-bordered w-full"
+                                required
+                            />
+                        </div>
+                        <div class="modal-action">
+                            <button
+                                type="button"
+                                onclick="add_contact_modal.close()"
+                                class="btn btn-ghost btn-sm"
+                            >
+                                Batal
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                Simpan Kontak
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
+        </Layout>
+    );
+};

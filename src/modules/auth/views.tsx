@@ -1,5 +1,7 @@
 import { Html } from '@elysiajs/html';
-import { Layout } from '../../shared/views/layout';
+import { User } from './model';
+import { Layout, Scripts } from '../../shared/views/layout';
+import { DesktopNavigation, MobileNavigation } from '../../shared/views/components';
 
 export const LoginPage = () => {
     return (
@@ -295,3 +297,157 @@ export const AuthResponseError = (msg: string) => {
         </>
     );
 };
+export function ProfilePage({ user }: { user: User }) {
+    const scripts: Scripts = {
+        alpine: true,
+        htmx: true,
+        customScript: [{ src: '/public/js/chat-page.js', defer: true }],
+    };
+
+    return (
+        <Layout title="Profil Saya" script={scripts}>
+            <div
+                x-data="{ currentPath: window.location.pathname }"
+                class="bg-base-200 min-h-screen flex items-center justify-center font-sans text-base-content"
+            >
+                <div class="w-full h-screen bg-base-100 md:rounded-2xl md:shadow-2xl flex flex-col md:flex-row border border-base-300 overflow-hidden">
+                    <DesktopNavigation />
+
+                    {/* Main Content Container */}
+                    <div class="flex-1 flex flex-col h-full bg-base-100 overflow-y-auto w-full">
+                        {/* Header Panel */}
+                        <div class="p-4 md:p-6 border-b border-base-300 bg-base-200/50 flex justify-between items-center">
+                            <div>
+                                <h1 class="text-xl font-bold">Profil Pengguna</h1>
+                                <p class="text-xs text-base-content/60">
+                                    Kelola detail informasi dan sesi akun Anda
+                                </p>
+                            </div>
+                            <a
+                                href="/auth/logout"
+                                class="btn btn-ghost btn-circle text-error"
+                                title="Logout"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                    class="w-5 h-5"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+                                    />
+                                </svg>
+                            </a>
+                        </div>
+
+                        {/* Content Area */}
+                        <div class="p-4 md:p-8 max-w-4xl mx-auto w-full space-y-6">
+                            {/* Profil Header Card */}
+                            <div class="bg-base-200/40 rounded-2xl p-6 border border-base-300 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+                                <div class="avatar placeholder shrink-0">
+                                    <div class="bg-primary text-primary-content rounded-full w-24 h-24 text-3xl font-bold flex items-center justify-center shadow-lg">
+                                        {user.username.charAt(0).toUpperCase()}
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5 flex-1 min-w-0">
+                                    <div class="badge badge-primary badge-sm font-medium">
+                                        Akun Terverifikasi
+                                    </div>
+                                    <h2 class="text-2xl md:text-3xl font-bold truncate">
+                                        {user.username}
+                                    </h2>
+                                    <div
+                                        class="inline-flex items-center gap-1.5 text-xs text-success cursor-pointer hover:underline"
+                                        x-data={`{id: ${user.id}}`}
+                                        x-on:click="
+                                            navigator.clipboard.writeText(id);
+                                            alert('ID berhasil disalin');
+                                        "
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke-width="1.5"
+                                            stroke="currentColor"
+                                            class="w-4 h-4"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
+                                            />
+                                        </svg>
+                                        ID Pengguna:{' '}
+                                        <span class="font-mono font-bold">{user.id}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Detail Informasi */}
+                            <div class="bg-base-100 rounded-2xl p-6 border border-base-300 space-y-6">
+                                <h3 class="text-base font-bold pb-3 border-b border-base-300">
+                                    Informasi Akun
+                                </h3>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="form-control">
+                                        <label class="label">
+                                            <span class="label-text-alt uppercase font-bold text-base-content/60">
+                                                Username
+                                            </span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={user.username}
+                                            class="input input-bordered w-full bg-base-200/50 cursor-not-allowed"
+                                            disabled
+                                        />
+                                    </div>
+
+                                    <div class="form-control">
+                                        <label class="label">
+                                            <span class="label-text-alt uppercase font-bold text-base-content/60">
+                                                Bergabung Pada
+                                            </span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={new Date(user.createdAt).toLocaleDateString(
+                                                'id-ID',
+                                                {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric',
+                                                }
+                                            )}
+                                            class="input input-bordered w-full bg-base-200/50 cursor-not-allowed"
+                                            disabled
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Action Zone */}
+                                <div class="pt-6 border-t border-base-300 flex justify-end">
+                                    <a
+                                        href="/auth/logout"
+                                        class="btn btn-error btn-outline w-full md:w-auto"
+                                    >
+                                        Keluar Sesi (Logout)
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <MobileNavigation />
+            </div>
+        </Layout>
+    );
+}
