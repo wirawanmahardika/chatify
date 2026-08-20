@@ -31,7 +31,7 @@ export const chatModule = new Elysia()
             const availableUsers = await chatService.getAllOtherUsers(user.id);
 
             return ChatPage({
-                currentUsername: user.username,
+                user: user,
                 userRooms,
                 availableUsers,
             });

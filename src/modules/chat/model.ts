@@ -1,4 +1,5 @@
 import { t, Static } from 'elysia';
+import { userSchema } from '../auth/model';
 
 export const roomSchema = t.Object({
     id: t.String(),
