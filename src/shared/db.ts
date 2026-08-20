@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 import { config } from '../config';
 
 export const usersTable = sqliteTable('users', {
-    id: text('id').primaryKey(), // UUID string
+    id: text('id').primaryKey(),
     username: text('username').notNull().unique(),
     passwordHash: text('password_hash').notNull(),
     createdAt: integer('created_at', { mode: 'timestamp' })
@@ -57,7 +57,37 @@ export const messagesTable = sqliteTable('messages', {
         .default(sql`(strftime('%s', 'now'))`),
 });
 
-export const schema = { usersTable, sessionsTable, roomsTable, roomMembersTable, messagesTable };
+export const friendshipsTable = sqliteTable(
+    'friendships',
+    {
+        senderId: text('sender_id')
+            .notNull()
+            .references(() => usersTable.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+        receiverId: text('receiver_id')
+            .notNull()
+            .references(() => usersTable.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+        status: text('status')
+            .$type<'pending' | 'accepted' | 'rejected'>()
+            .notNull()
+            .default('pending'),
+        createdAt: integer('created_at', { mode: 'timestamp' })
+            .notNull()
+            .default(sql`(strftime('%s', 'now'))`),
+        updatedAt: integer('updated_at', { mode: 'timestamp' })
+            .notNull()
+            .default(sql`(strftime('%s', 'now'))`),
+    },
+    (table) => [primaryKey({ columns: [table.senderId, table.receiverId] })]
+);
+
+export const schema = {
+    usersTable,
+    sessionsTable,
+    roomsTable,
+    roomMembersTable,
+    messagesTable,
+    friendshipsTable,
+};
 
 export const sqlite = createClient({ url: config.DB_URL });
 export const db = drizzle(sqlite, { schema });
