@@ -89,7 +89,10 @@ export function DesktopNavigation() {
 export function MobileNavigation() {
     return (
         <div x-data={'{ currentPath:  window.location.pathname }'} class="dock md:hidden">
-            <button x-bind:class={"currentPath === '/' && 'dock-active'"}>
+            <button
+                x-on:click="window.location.href = '/'"
+                x-bind:class={"currentPath === '/' && 'dock-active'"}
+            >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -107,7 +110,10 @@ export function MobileNavigation() {
                 <span class="dock-label">Chat</span>
             </button>
 
-            <button x-bind:class={"currentPath.startsWith('/contact') && 'dock-active'"}>
+            <button
+                x-on:click="window.location.href = '/contact'"
+                x-bind:class={"currentPath.startsWith('/contact') && 'dock-active'"}
+            >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -125,7 +131,10 @@ export function MobileNavigation() {
                 <span class="dock-label">Kontak</span>
             </button>
 
-            <button x-bind:class={"currentPath.startsWith('/profile') && 'dock-active'"}>
+            <button
+                x-on:click="window.location.href = 'profile'"
+                x-bind:class={"currentPath.startsWith('/profile') && 'dock-active'"}
+            >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"

@@ -7,7 +7,7 @@ export const authModule = new Elysia()
     .get('/profile', async ({ redirect, cookie: { session } }) => {
         if (!session.value) {
             session.remove();
-            return { user: null };
+            return redirect('/auth/login');
         }
         const user = await authService.validateSession(session.value as string);
         if (!user) {
