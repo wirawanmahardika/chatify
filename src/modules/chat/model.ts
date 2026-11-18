@@ -57,3 +57,22 @@ export const sendMessageSchema = t.Object({
 });
 
 export type SendMessage = Static<typeof sendMessageSchema>;
+
+export const AddFriendshipBody = t.Object({ id: t.String() });
+
+export enum friendshipStatus {
+    'pending' = 'pending',
+    'accepted' = 'accepted',
+    'rejected' = 'rejected',
+}
+export type RequestFriendship = {
+    oppositeId: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    username: string;
+    createdAt: Date;
+};
+
+export const UpdateStatusFriendship = t.Object({
+    id: t.String(),
+    status: t.Enum(friendshipStatus),
+});

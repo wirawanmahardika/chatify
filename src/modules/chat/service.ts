@@ -1,8 +1,64 @@
-import { desc, lt, eq, and, ne } from 'drizzle-orm';
-import { db, messagesTable, usersTable, roomsTable, roomMembersTable } from '../../shared/db';
-import type { Message, MessageWithUser, RoomWithDetails } from './model';
+import { desc, lt, eq, and, ne, inArray, or } from 'drizzle-orm';
+import {
+    db,
+    messagesTable,
+    usersTable,
+    roomsTable,
+    roomMembersTable,
+    friendshipsTable,
+} from '../../shared/db';
+import {
+    friendshipStatus,
+    type Message,
+    type MessageWithUser,
+    type RequestFriendship,
+    type RoomWithDetails,
+} from './model';
 
 export class ChatService {
+    async addFriendship(senderId: string, receiverId: string) {
+        const countUser = await db.$count(usersTable, eq(usersTable.id, receiverId));
+        if (countUser === 0) throw new Error('Tidak ada user dengan ID ' + receiverId);
+        await db.insert(friendshipsTable).values({
+            receiverId,
+            senderId,
+        });
+    }
+
+    async getFriendship(userId: string): Promise<RequestFriendship[]> {
+        return db
+            .select({
+                oppositeId: friendshipsTable.senderId,
+                status: friendshipsTable.status,
+                username: usersTable.username,
+                createdAt: friendshipsTable.createdAt,
+            })
+            .from(friendshipsTable)
+            .where(
+                and(
+                    eq(friendshipsTable.receiverId, userId),
+                    ne(friendshipsTable.status, 'rejected')
+                )
+            )
+            .innerJoin(usersTable, eq(usersTable.id, friendshipsTable.senderId));
+    }
+
+    async updateStatusFriendship(
+        userId: string,
+        oppositeId: string,
+        status: 'accepted' | 'pending' | 'rejected'
+    ) {
+        await db
+            .update(friendshipsTable)
+            .set({ status: status })
+            .where(
+                and(
+                    eq(friendshipsTable.receiverId, userId),
+                    eq(friendshipsTable.senderId, oppositeId)
+                )
+            );
+    }
+
     async getOrCreateDirectRoom(userAId: string, userBId: string): Promise<string> {
         // Find existing direct rooms where userA is a member
         const userARooms = await db
@@ -181,6 +237,17 @@ export class ChatService {
             .from(roomMembersTable)
             .where(and(eq(roomMembersTable.roomId, roomId), eq(roomMembersTable.userId, userId)));
         return members.length > 0;
+    }
+
+    async getContacts(id: string): Promise<{ id: string; username: string }[]> {
+        return db
+            .select({ id: usersTable.id, username: usersTable.username })
+            .from(friendshipsTable)
+            .innerJoin(
+                usersTable,
+                or(eq(friendshipsTable.receiverId, id), eq(friendshipsTable.senderId, id))
+            )
+            .where(eq(friendshipsTable.status, 'accepted'));
     }
 
     async getAllOtherUsers(currentUserId: string): Promise<{ id: string; username: string }[]> {

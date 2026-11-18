@@ -67,4 +67,5 @@ export const authModule = new Elysia()
                 return redirect('/auth/login');
             })
     );
-export const authRoutes = authModule;
+
+export default authModule;

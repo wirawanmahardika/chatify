@@ -2,8 +2,8 @@ import { Elysia } from 'elysia';
 import { staticPlugin } from '@elysia/static';
 import { html } from '@elysiajs/html';
 import { config } from './config';
-import { authModule } from './modules/auth';
-import { chatModule } from './modules/chat';
+import authModule from './modules/auth';
+import chatModule from './modules/chat';
 
 const app = new Elysia({
     cookie: {

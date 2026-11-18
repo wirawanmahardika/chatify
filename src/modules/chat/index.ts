@@ -1,8 +1,10 @@
 import { Elysia, t } from 'elysia';
 import { authService } from '../auth/service';
 import { chatService } from './service';
-import { ChatPage, ChatPanel, ChatPartial, Chats, ContactsPage } from './views';
+import { ChatPage, ChatPanel, ChatPartial, Chats, ContactList, ContactsPage } from './views';
 import type { User } from '../auth/model';
+import { AddFriendshipBody, UpdateStatusFriendship } from './model';
+import { ModalAlert } from '../../shared/views/components';
 
 interface WSClientState {
     user: User;
@@ -28,8 +30,7 @@ export const chatModule = new Elysia()
         try {
             if (!user) return redirect('/auth/login');
             const userRooms = await chatService.getUserRooms(user.id);
-            const availableUsers = await chatService.getAllOtherUsers(user.id);
-
+            const availableUsers = await chatService.getContacts(user.id);
             return ChatPage({
                 user: user,
                 userRooms,
@@ -117,18 +118,54 @@ export const chatModule = new Elysia()
             query: t.Optional(t.Object({ beforeDate: t.Date() })),
         }
     )
-
     .get('/contact', async ({ user, redirect }) => {
         try {
             if (!user) return redirect('/auth/login');
+            const friendships = await chatService.getFriendship(user.id);
             return ContactsPage({
-                contacts: [],
+                contacts: friendships.filter((f) => f.status === 'accepted'),
                 user: user,
+                friendRequests: friendships.filter((f) => f.status === 'pending'),
             });
         } catch (error) {
             return new Response(null, { status: 500 });
         }
     })
+    .get('/contacts', async ({ user, set }) => {
+        if (!user) return new Response(null, { status: 403 });
+        const friendships = await chatService.getFriendship(user.id);
+        // set.headers['HX-Refresh'] = 'true';
+        return ContactList({ contacts: friendships.filter((c) => c.status === 'accepted') });
+    })
+    .post(
+        '/contact',
+        async ({ body, user, redirect }) => {
+            try {
+                if (!user) return redirect('/auth/login');
+                await chatService.addFriendship(user.id, body.id);
+                return ModalAlert({
+                    status: 'success',
+                    msg: 'Berhasil mengirim permintaan pertemanan, mohon tunggu konfirmasi penerima',
+                });
+            } catch (error: any) {
+                if (error instanceof Error)
+                    return ModalAlert({ status: 'error', msg: error.message });
+                return ModalAlert({ status: 'error', msg: 'Terjadi kesalahan' });
+            }
+        },
+        { body: AddFriendshipBody }
+    )
+    .patch(
+        '/contact',
+        async ({ body, user, set, redirect }) => {
+            if (!user) return redirect('/auth/login');
+            await chatService.updateStatusFriendship(user.id, body.id, body.status);
+
+            set.headers['HX-Refresh'] = 'true';
+            return new Response(null, { status: 200 });
+        },
+        { body: UpdateStatusFriendship }
+    )
 
     .ws('/ws', {
         async open(ws) {
@@ -196,4 +233,4 @@ export const chatModule = new Elysia()
         },
     });
 
-export const chatRoutes = chatModule;
+export default chatModule;

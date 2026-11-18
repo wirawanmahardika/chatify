@@ -1,16 +1,18 @@
 import { Html } from '@elysiajs/html';
-import type { MessageWithUser, RoomWithDetails } from './model';
+import type { MessageWithUser, RequestFriendship, RoomWithDetails } from './model';
 import { Layout, Scripts } from '../../shared/views/layout';
 import { User } from '../auth/model';
 import { DesktopNavigation, MobileNavigation } from '../../shared/views/components';
 
-interface ChatPageProps {
+export const ChatPage = ({
+    userRooms,
+    user,
+    availableUsers,
+}: {
     user: User;
     userRooms: RoomWithDetails[];
     availableUsers: { id: string; username: string }[];
-}
-
-export const ChatPage = ({ userRooms, user, availableUsers }: ChatPageProps) => {
+}) => {
     const scripts: Scripts = {
         alpine: true,
         htmx: true,
@@ -475,12 +477,15 @@ export const ChatPanel = ({
     );
 };
 
-interface ContactsPageProps {
+export const ContactsPage = ({
+    contacts,
+    user,
+    friendRequests = [],
+}: {
     user: User;
-    contacts: User[];
-}
-
-export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
+    contacts: RequestFriendship[];
+    friendRequests?: RequestFriendship[];
+}) => {
     const scripts: Scripts = {
         alpine: true,
         htmx: true,
@@ -490,7 +495,7 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
     return (
         <Layout title="Kelola Kontak" script={scripts}>
             <div
-                x-data="{ search: '' }"
+                x-data="{ search: '', activeTab: 'contacts' }"
                 class="bg-base-200 min-h-screen flex items-center justify-center font-sans text-base-content"
             >
                 <div class="w-full h-screen bg-base-100 md:rounded-2xl md:shadow-2xl flex flex-col md:flex-row border border-base-300 overflow-hidden">
@@ -556,11 +561,35 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
                             </a>
                         </div>
 
+                        {/* Navigation Tabs (Kontak vs Permintaan) */}
+                        <div class="p-2 border-b border-base-300 grid grid-cols-2 gap-1 bg-base-100">
+                            <button
+                                x-on:click="activeTab = 'contacts'"
+                                x-bind:class="activeTab === 'contacts' ? 'btn-primary' : 'btn-ghost'"
+                                class="btn btn-xs rounded-lg"
+                            >
+                                Kontak ({contacts.length})
+                            </button>
+                            <button
+                                x-on:click="activeTab = 'requests'"
+                                x-bind:class="activeTab === 'requests' ? 'btn-primary' : 'btn-ghost'"
+                                class="btn btn-xs rounded-lg relative"
+                            >
+                                Permintaan
+                                {friendRequests.length > 0 && (
+                                    <span class="badge badge-error badge-xs">
+                                        {friendRequests.length}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+
                         {/* Direct Actions & Title */}
                         <div class="p-3 border-b border-base-300 flex justify-between items-center bg-base-100">
-                            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">
-                                Daftar Kontak
-                            </span>
+                            <span
+                                x-text="activeTab === 'contacts' ? 'Daftar Kontak' : 'Permintaan Pertemanan'"
+                                class="text-xs font-bold uppercase tracking-wider text-base-content/60"
+                            ></span>
                             <button
                                 onclick="add_contact_modal.showModal()"
                                 class="btn btn-primary btn-xs gap-1"
@@ -579,7 +608,7 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
                                         d="M12 4.5v15m7.5-7.5h-15"
                                     />
                                 </svg>
-                                Tambah Kontak
+                                Kirim Permintaan
                             </button>
                         </div>
 
@@ -590,7 +619,7 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
                                     type="text"
                                     x-model="search"
                                     class="grow text-xs"
-                                    placeholder="Filter nama atau ID kontak..."
+                                    placeholder="Filter nama atau ID..."
                                 />
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -607,18 +636,22 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
                             </label>
                         </div>
 
-                        {/* Saved Contacts List */}
-                        <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                        {/* TAB 1: Saved Contacts List */}
+                        <div
+                            id="contacts"
+                            hx-get="/contacts"
+                            hx-trigger="updateContacts from:body"
+                            x-show="activeTab === 'contacts'"
+                            class="flex-1 overflow-y-auto p-2 space-y-1"
+                        >
                             {contacts.length === 0 ? (
                                 <div class="text-center p-6 text-base-content/50 text-sm">
                                     Belum ada kontak tersimpan.
-                                    <br />
-                                    Klik <strong>"Tambah Kontak"</strong> untuk memasukkan ID.
                                 </div>
                             ) : (
                                 contacts.map((contact) => (
                                     <div
-                                        x-show={`!search || '${contact.username}'.toLowerCase().includes(search.toLowerCase()) || '${contact.id}'.includes(search)`}
+                                        x-show={`!search || '${contact.username}'.toLowerCase().includes(search.toLowerCase()) || '${contact.oppositeId}'.includes(search)`}
                                         class="flex items-center justify-between p-3 rounded-xl hover:bg-base-200 transition w-full group"
                                     >
                                         <div class="flex items-center gap-3 truncate">
@@ -632,17 +665,16 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
                                                     {contact.username}
                                                 </h3>
                                                 <span class="text-xs text-base-content/50 block truncate">
-                                                    ID: {contact.id}
+                                                    ID: {contact.oppositeId}
                                                 </span>
                                             </div>
                                         </div>
                                         <div class="flex items-center gap-1">
-                                            {/* Chat Direct Button */}
                                             <form method="POST" action="/direct">
                                                 <input
                                                     type="hidden"
                                                     name="targetUserId"
-                                                    value={contact.id}
+                                                    value={contact.oppositeId}
                                                 />
                                                 <button
                                                     type="submit"
@@ -665,10 +697,9 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
                                                     </svg>
                                                 </button>
                                             </form>
-                                            {/* Delete Contact Button */}
                                             <form
                                                 method="POST"
-                                                action={`/contacts/delete/${contact.id}`}
+                                                action={`/contacts/delete/${contact.oppositeId}`}
                                             >
                                                 <button
                                                     type="submit"
@@ -696,6 +727,69 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
                                 ))
                             )}
                         </div>
+
+                        {/* TAB 2: Friend Requests List */}
+                        <div
+                            id="friend-requests"
+                            x-show="activeTab === 'requests'"
+                            class="flex-1 overflow-y-auto p-2 space-y-1"
+                        >
+                            {friendRequests.length === 0 ? (
+                                <div class="text-center p-6 text-base-content/50 text-sm">
+                                    Tidak ada permintaan pertemanan masuk.
+                                </div>
+                            ) : (
+                                friendRequests.map((req) => (
+                                    <div
+                                        x-show={`!search || '${req.username}'.toLowerCase().includes(search.toLowerCase()) || '${req.oppositeId}'.includes(search)`}
+                                        class="flex items-center justify-between p-3 rounded-xl hover:bg-base-200 transition w-full"
+                                    >
+                                        <div class="flex items-center gap-3 truncate">
+                                            <div class="avatar placeholder shrink-0">
+                                                <div class="bg-accent text-accent-content rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm">
+                                                    {req.username.charAt(0).toUpperCase()}
+                                                </div>
+                                            </div>
+                                            <div class="truncate text-left">
+                                                <h3 class="font-semibold text-sm truncate">
+                                                    {req.username}
+                                                </h3>
+                                                <span class="text-xs text-base-content/50 block truncate">
+                                                    ID: {req.oppositeId}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            {/* Confirm Button */}
+                                            <button
+                                                class="btn btn-success btn-xs text-white"
+                                                title="Terima Permintaan"
+                                                hx-confirm={`Terima permintaan pertemanan dari ${req.username}?`}
+                                                hx-patch="/contact"
+                                                hx-target="closest [x-show]"
+                                                hx-swap="outerHTML"
+                                                hx-vals={`{"id": "${req.oppositeId}", "status": "accepted"}`}
+                                            >
+                                                Konfirmasi
+                                            </button>
+                                            {/* Reject Button */}
+
+                                            <button
+                                                class="btn btn-ghost btn-xs text-error"
+                                                title="Tolak Permintaan"
+                                                hx-confirm={`Tolak permintaan pertemanan dari ${req.username}?`}
+                                                hx-patch="/contact"
+                                                hx-target="closest [x-show]"
+                                                hx-swap="outerHTML"
+                                                hx-vals={`{"id": "${req.oppositeId}", "status": "rejected"}`}
+                                            >
+                                                Tolak
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
 
                     {/* Right Main Panel */}
@@ -717,13 +811,13 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
                                     />
                                 </svg>
                             </div>
-                            <h2 class="text-xl font-bold mb-2">Manajemen Kontak</h2>
+                            <h2 class="text-xl font-bold mb-2">Manajemen Kontak & Permintaan</h2>
                             <p class="text-base-content/60 max-w-sm mb-6 text-sm">
-                                Tambahkan kontak teman menggunakan ID unik mereka untuk menyimpan
-                                daftar relasi Anda.
+                                Kirim permintaan pertemanan dengan ID unik bertipe angka atau kelola
+                                daftar teman Anda.
                             </p>
                             <button onclick="add_contact_modal.showModal()" class="btn btn-primary">
-                                Tambah Kontak Baru
+                                Kirim Permintaan Pertemanan
                             </button>
                         </div>
                     </div>
@@ -732,21 +826,29 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
                 <MobileNavigation />
             </div>
 
-            {/* Modal - Add Contact via ID */}
+            {/* Modal - Send Friend Request via Numeric ID */}
             <dialog id="add_contact_modal" class="modal">
                 <div class="modal-box">
-                    <h3 class="font-bold text-lg mb-4">Tambah Kontak Baru</h3>
-                    <form method="POST" action="/contacts/add" class="space-y-4">
+                    <h3 class="font-bold text-lg mb-4">Kirim Permintaan Pertemanan</h3>
+
+                    <div id="modal-alert-message"></div>
+
+                    <form hx-post="/contact" hx-target="#modal-alert-message" class="space-y-4">
                         <div class="form-control">
                             <label class="label">
-                                <span class="label-text font-semibold">ID Kontak Teman</span>
+                                <span class="label-text font-semibold">
+                                    ID Pengguna Target (Angka)
+                                </span>
                             </label>
                             <input
                                 type="text"
-                                name="contactUserId"
-                                placeholder="Masukkan ID Pengguna..."
+                                name="id"
+                                pattern="[0-9]*"
+                                inputmode="numeric"
+                                placeholder="Masukkan ID Angka (contoh: 12345)"
                                 class="input input-bordered w-full"
                                 required
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                             />
                         </div>
                         <div class="modal-action">
@@ -758,7 +860,7 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
                                 Batal
                             </button>
                             <button type="submit" class="btn btn-primary btn-sm">
-                                Simpan Kontak
+                                Kirim Permintaan
                             </button>
                         </div>
                     </form>
@@ -770,3 +872,59 @@ export const ContactsPage = ({ contacts, user }: ContactsPageProps) => {
         </Layout>
     );
 };
+
+export function ContactList({ contacts }: { contacts: RequestFriendship[] }) {
+    return (
+        <>
+            {contacts.length === 0 ? (
+                <div class="text-center p-6 text-base-content/50 text-sm">
+                    Tidak ada permintaan pertemanan masuk.
+                </div>
+            ) : (
+                contacts.map((contact) => (
+                    <div
+                        x-show={`!search || '${contact.username}'.toLowerCase().includes(search.toLowerCase()) || '${contact.oppositeId}'.includes(search)`}
+                        class="flex items-center justify-between p-3 rounded-xl hover:bg-base-200 transition w-full"
+                    >
+                        <div class="flex items-center gap-3 truncate">
+                            <div class="avatar placeholder shrink-0">
+                                <div class="bg-accent text-accent-content rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm">
+                                    {contact.username.charAt(0).toUpperCase()}
+                                </div>
+                            </div>
+                            <div class="truncate text-left">
+                                <h3 class="font-semibold text-sm truncate">{contact.username}</h3>
+                                <span class="text-xs text-base-content/50 block truncate">
+                                    ID: {contact.oppositeId}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            {/* Confirm Button */}
+                            <button
+                                class="btn btn-success btn-xs text-white"
+                                title="Terima Permintaan"
+                                hx-confirm={`Terima permintaan pertemanan dari ${contact.username}?`}
+                                hx-patch="/contact"
+                                hx-vals={`{"id": "${contact.oppositeId}", "status": "accepted"}`}
+                            >
+                                Konfirmasi
+                            </button>
+                            {/* Reject Button */}
+
+                            <button
+                                class="btn btn-ghost btn-xs text-error"
+                                title="Tolak Permintaan"
+                                hx-confirm={`Tolak permintaan pertemanan dari ${contact.username}?`}
+                                hx-patch="/contact"
+                                hx-vals={`{"id": "${contact.oppositeId}", "status": "rejected"}`}
+                            >
+                                Tolak
+                            </button>
+                        </div>
+                    </div>
+                ))
+            )}
+        </>
+    );
+}
