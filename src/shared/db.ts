@@ -1,36 +1,60 @@
-import { drizzle } from 'drizzle-orm/libsql';
-import { createClient } from '@libsql/client';
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
-import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import {
+    pgTable,
+    pgEnum,
+    text,
+    serial,
+    timestamp,
+    primaryKey,
+    index,
+} from 'drizzle-orm/pg-core';
 import { config } from '../config';
 
-export const usersTable = sqliteTable('users', {
+const connectionUrl = config.NODE_ENV === 'test' ? config.TEST_DB_URL : config.DB_URL;
+
+export const sql = postgres(connectionUrl, {
+    max: config.NODE_ENV === 'test' ? 5 : 10,
+});
+
+export const roomTypeEnum = pgEnum('room_type', ['direct', 'group']);
+export const roomRoleEnum = pgEnum('room_role', ['owner', 'admin', 'member']);
+export const friendshipStatusEnum = pgEnum('friendship_status', [
+    'pending',
+    'accepted',
+    'rejected',
+    'blocked',
+]);
+export const messageTypeEnum = pgEnum('message_type', ['text', 'image', 'file']);
+
+export const usersTable = pgTable('users', {
     id: text('id').primaryKey(),
     username: text('username').notNull().unique(),
     passwordHash: text('password_hash').notNull(),
-    createdAt: integer('created_at', { mode: 'timestamp' })
-        .notNull()
-        .default(sql`(strftime('%s', 'now'))`),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const sessionsTable = sqliteTable('sessions', {
-    id: text('id').primaryKey(),
-    userId: text('user_id')
-        .notNull()
-        .references(() => usersTable.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-});
+export const sessionsTable = pgTable(
+    'sessions',
+    {
+        id: text('id').primaryKey(),
+        userId: text('user_id')
+            .notNull()
+            .references(() => usersTable.id, { onDelete: 'cascade' }),
+        expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    },
+    (table) => [index('sessions_user_id_idx').on(table.userId)]
+);
 
-export const roomsTable = sqliteTable('rooms', {
+export const roomsTable = pgTable('rooms', {
     id: text('id').primaryKey(),
     name: text('name'),
-    type: text('type').$type<'direct' | 'group'>().notNull(),
-    createdAt: integer('created_at', { mode: 'timestamp' })
-        .notNull()
-        .default(sql`(strftime('%s', 'now'))`),
+    type: roomTypeEnum('type').default('direct').notNull(),
+    createdBy: text('created_by').references(() => usersTable.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const roomMembersTable = sqliteTable(
+export const roomMembersTable = pgTable(
     'room_members',
     {
         roomId: text('room_id')
@@ -38,56 +62,54 @@ export const roomMembersTable = sqliteTable(
             .references(() => roomsTable.id, { onDelete: 'cascade' }),
         userId: text('user_id')
             .notNull()
-            .references(() => usersTable.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+            .references(() => usersTable.id, { onDelete: 'cascade' }),
+        role: roomRoleEnum('role').default('member').notNull(),
+        lastReadAt: timestamp('last_read_at', { withTimezone: true }).defaultNow().notNull(),
+        joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull(),
     },
-    (table) => [primaryKey({ columns: [table.roomId, table.userId] })]
+    (table) => [
+        primaryKey({ columns: [table.roomId, table.userId] }),
+        index('room_members_user_id_idx').on(table.userId),
+    ]
 );
 
-export const messagesTable = sqliteTable('messages', {
-    id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-    roomId: text('room_id')
-        .notNull()
-        .references(() => roomsTable.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
-        .notNull()
-        .references(() => usersTable.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    content: text('content').notNull(),
-    createdAt: integer('created_at', { mode: 'timestamp' })
-        .notNull()
-        .default(sql`(strftime('%s', 'now'))`),
-});
+export const messagesTable = pgTable(
+    'messages',
+    {
+        id: serial('id').primaryKey(),
+        roomId: text('room_id')
+            .notNull()
+            .references(() => roomsTable.id, { onDelete: 'cascade' }),
+        userId: text('user_id')
+            .notNull()
+            .references(() => usersTable.id, { onDelete: 'cascade' }),
+        type: messageTypeEnum('type').default('text').notNull(),
+        content: text('content').notNull(),
+        attachmentUrl: text('attachment_url'),
+        attachmentName: text('attachment_name'),
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    },
+    (table) => [index('messages_room_created_idx').on(table.roomId, table.createdAt)]
+);
 
-export const friendshipsTable = sqliteTable(
+export const friendshipsTable = pgTable(
     'friendships',
     {
         senderId: text('sender_id')
             .notNull()
-            .references(() => usersTable.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+            .references(() => usersTable.id, { onDelete: 'cascade' }),
         receiverId: text('receiver_id')
             .notNull()
-            .references(() => usersTable.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-        status: text('status')
-            .$type<'pending' | 'accepted' | 'rejected'>()
-            .notNull()
-            .default('pending'),
-        createdAt: integer('created_at', { mode: 'timestamp' })
-            .notNull()
-            .default(sql`(strftime('%s', 'now'))`),
-        updatedAt: integer('updated_at', { mode: 'timestamp' })
-            .notNull()
-            .default(sql`(strftime('%s', 'now'))`),
+            .references(() => usersTable.id, { onDelete: 'cascade' }),
+        status: friendshipStatusEnum('status').default('pending').notNull(),
+        blockedBy: text('blocked_by').references(() => usersTable.id, { onDelete: 'set null' }),
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
     },
-    (table) => [primaryKey({ columns: [table.senderId, table.receiverId] })]
+    (table) => [
+        primaryKey({ columns: [table.senderId, table.receiverId] }),
+        index('friendships_receiver_idx').on(table.receiverId),
+    ]
 );
 
-export const schema = {
-    usersTable,
-    sessionsTable,
-    roomsTable,
-    roomMembersTable,
-    messagesTable,
-    friendshipsTable,
-};
-
-export const sqlite = createClient({ url: config.DB_URL });
-export const db = drizzle(sqlite, { schema });
+export const db = drizzle(sql);

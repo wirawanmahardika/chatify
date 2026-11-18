@@ -1,8 +1,16 @@
 import { randomBytes } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db, usersTable, sessionsTable } from '../../shared/db';
-import type { RegisterBody, LoginBody, User, Session } from './model';
 import { idGenerator6Digit } from '../../shared/idGenerator';
+import { logger } from '../../shared/logger';
+import type { RegisterBody, LoginBody, User, Session } from './model';
+
+export class AuthError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'AuthError';
+    }
+}
 
 export class AuthService {
     async register(dto: RegisterBody): Promise<User> {
@@ -10,8 +18,9 @@ export class AuthService {
             .select()
             .from(usersTable)
             .where(eq(usersTable.username, dto.username));
+
         if (existingUsers.length > 0) {
-            throw new Error('Username already exists');
+            throw new AuthError('Username sudah digunakan');
         }
 
         const countUser = await db.$count(usersTable);
@@ -24,6 +33,7 @@ export class AuthService {
         };
 
         await db.insert(usersTable).values(user);
+        logger.info('Pengguna baru terdaftar', { module: 'auth', userId: user.id });
         return user;
     }
 
@@ -33,13 +43,15 @@ export class AuthService {
             .from(usersTable)
             .where(eq(usersTable.username, dto.username));
         const user = foundUsers[0];
+
         if (!user) {
-            throw new Error('Invalid username or password');
+            throw new AuthError('Username atau kata sandi salah');
         }
 
         const isValid = await Bun.password.verify(dto.password, user.passwordHash);
         if (!isValid) {
-            throw new Error('Invalid username or password');
+            logger.warn('Percobaan login gagal', { module: 'auth', userId: user.id });
+            throw new AuthError('Username atau kata sandi salah');
         }
 
         const sessionId = randomBytes(32).toString('hex');
@@ -52,6 +64,7 @@ export class AuthService {
         };
 
         await db.insert(sessionsTable).values(session);
+        logger.info('Pengguna berhasil masuk', { module: 'auth', userId: user.id });
         return session;
     }
 

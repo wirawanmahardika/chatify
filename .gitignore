@@ -43,6 +43,7 @@ package-lock.json
 **/*.bun
 
 storage/*
+logs/
 public/style.css
 tmp
 repomix-output.*

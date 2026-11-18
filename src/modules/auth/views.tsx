@@ -1,12 +1,12 @@
 import { Html } from '@elysiajs/html';
-import { User } from './model';
-import { Layout, Scripts } from '../../shared/views/layout';
-import { DesktopNavigation, MobileNavigation } from '../../shared/views/components';
+import type { User } from './model';
+import { Layout, type Scripts } from '../../shared/views/layout';
+import { DesktopNavigation, MobileNavigation } from '../../shared/components/navigation';
 
 export const LoginPage = () => {
     return (
         <Layout
-            title="Register"
+            title="Masuk"
             script={{ htmx: true, alpine: true }}
             class="bg-base-300 min-h-screen antialiased"
         >

@@ -1,5 +1,7 @@
 import { Elysia } from 'elysia';
-import { authService } from './service';
+import { config } from '../../config';
+import { logger } from '../../shared/logger';
+import { authService, AuthError } from './service';
 import { loginBodySchema, registerBodySchema } from './model';
 import { LoginPage, RegisterView, AuthResponseError, ProfilePage } from './views';
 
@@ -23,24 +25,34 @@ export const authModule = new Elysia()
                 '/login',
                 async ({ body, set, cookie: { session } }) => {
                     try {
-                        const { username, password } = body;
-                        const newSession = await authService.login({ username, password });
+                        const newSession = await authService.login(body);
 
                         session.set({
                             value: newSession.id,
                             httpOnly: true,
                             sameSite: 'strict',
-                            secure: process.env.NODE_ENV === 'production',
+                            secure: config.NODE_ENV === 'production',
                             expires: newSession.expiresAt,
                             path: '/',
                         });
                         set.headers['HX-Redirect'] = '/';
-                    } catch (error: any) {
-                        return AuthResponseError(error?.message || 'Terjadi kesalahan');
+                        return '';
+                    } catch (error) {
+                        if (error instanceof AuthError) {
+                            return AuthResponseError(error.message);
+                        }
+                        logger.error('Kesalahan saat login', { module: 'auth', error });
+                        return AuthResponseError('Terjadi kesalahan pada server, silakan coba lagi');
                     }
                 },
                 {
                     body: loginBodySchema,
+                    error({ code, error, set }) {
+                        if (code === 'VALIDATION') {
+                            set.status = 422;
+                            return AuthResponseError(error.message || 'Data masuk tidak valid');
+                        }
+                    },
                 }
             )
             .get('/register', () => RegisterView())
@@ -48,15 +60,25 @@ export const authModule = new Elysia()
                 '/register',
                 async ({ set, body }) => {
                     try {
-                        const { username, password } = body;
-                        await authService.register({ username, password });
+                        await authService.register(body);
                         set.headers['HX-Redirect'] = '/auth/login';
-                    } catch (error: any) {
-                        return AuthResponseError(error?.message || 'Terjadi kesalahan');
+                        return '';
+                    } catch (error) {
+                        if (error instanceof AuthError) {
+                            return AuthResponseError(error.message);
+                        }
+                        logger.error('Kesalahan saat registrasi', { module: 'auth', error });
+                        return AuthResponseError('Terjadi kesalahan pada server, silakan coba lagi');
                     }
                 },
                 {
                     body: registerBodySchema,
+                    error({ code, error, set }) {
+                        if (code === 'VALIDATION') {
+                            set.status = 422;
+                            return AuthResponseError(error.message || 'Data pendaftaran tidak valid');
+                        }
+                    },
                 }
             )
             .get('/logout', async ({ cookie: { session }, redirect }) => {

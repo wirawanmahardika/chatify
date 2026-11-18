@@ -1,8 +1,15 @@
 import { Html } from '@elysiajs/html';
-import type { MessageWithUser, RequestFriendship, RoomWithDetails } from './model';
-import { Layout, Scripts } from '../../shared/views/layout';
-import { User } from '../auth/model';
-import { DesktopNavigation, MobileNavigation } from '../../shared/views/components';
+import type {
+    MessageType,
+    MessageWithUser,
+    RequestFriendship,
+    RoomType,
+    RoomWithDetails,
+    UserSearchResult,
+} from './model';
+import { Layout, type Scripts } from '../../shared/views/layout';
+import type { User } from '../auth/model';
+import { DesktopNavigation, MobileNavigation } from '../../shared/components/navigation';
 
 export const ChatPage = ({
     userRooms,
@@ -27,8 +34,7 @@ export const ChatPage = ({
                 class="bg-base-200 min-h-screen flex items-center justify-center font-sans text-base-content"
             >
                 <div
-                    hx-ext="ws"
-                    ws-connect="/ws"
+                    hx-ws:connect="/ws"
                     class="w-full h-screen bg-base-100 md:rounded-2xl md:shadow-2xl flex flex-col md:flex-row border border-base-300 overflow-hidden"
                 >
                     <DesktopNavigation />
@@ -94,31 +100,40 @@ export const ChatPage = ({
                             </a>
                         </div>
 
-                        {/* Direct Messages Section Title & New Chat Button */}
-                        <div class="p-3 border-b border-base-300 flex justify-between items-center bg-base-100">
+                        {/* Direct Messages & Group Section Title & Actions */}
+                        <div class="p-3 border-b border-base-300 flex justify-between items-center gap-1 bg-base-100">
                             <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">
-                                Direct Messages
+                                Percakapan
                             </span>
-                            <button
-                                onclick="new_chat_modal.showModal()"
-                                class="btn btn-primary btn-xs gap-1"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="2"
-                                    stroke="currentColor"
-                                    class="w-3.5 h-3.5"
+                            <div class="flex items-center gap-1">
+                                <button
+                                    onclick="create_group_modal.showModal()"
+                                    class="btn btn-outline btn-xs gap-1"
+                                    title="Buat Grup Baru"
                                 >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M12 4.5v15m7.5-7.5h-15"
-                                    />
-                                </svg>
-                                Obrolan Baru
-                            </button>
+                                    Grup
+                                </button>
+                                <button
+                                    onclick="new_chat_modal.showModal()"
+                                    class="btn btn-primary btn-xs gap-1"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke-width="2"
+                                        stroke="currentColor"
+                                        class="w-3.5 h-3.5"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M12 4.5v15m7.5-7.5h-15"
+                                        />
+                                    </svg>
+                                    Obrolan Baru
+                                </button>
+                            </div>
                         </div>
 
                         {/* Rooms List */}
@@ -132,7 +147,9 @@ export const ChatPage = ({
                             ) : (
                                 userRooms.map((room) => {
                                     const title =
-                                        room.opponentName || room.name || 'Direct Message';
+                                        room.type === 'group'
+                                            ? room.name || 'Grup'
+                                            : room.opponentName || room.name || 'Direct Message';
                                     const initial = title.charAt(0).toUpperCase();
                                     const lastMsg = room.lastMessage
                                         ? room.lastMessage.content
@@ -144,35 +161,54 @@ export const ChatPage = ({
                                             hx-target="#chat-panel"
                                             hx-swap="outerHTML"
                                             hx-on-htmx-after-request="scrollToBottom()"
-                                            x-on:click={`activeRoomId = '${room.id}'`}
+                                            x-on:click={`activeRoomId = '${room.id}'; window.__activeRoomId = '${room.id}'; clearUnreadBadge('${room.id}')`}
                                             x-bind:class={`activeRoomId === '${room.id}' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200 text-base-content'`}
                                             class="flex items-center gap-3 p-3 rounded-xl transition w-full"
                                         >
-                                            <div class="avatar placeholder shrink-0">
+                                            <div class="avatar placeholder shrink-0 relative">
                                                 <div
                                                     x-bind:class={`activeRoomId === '${room.id}' ? 'bg-primary-content text-primary' : 'bg-neutral text-neutral-content'`}
-                                                    class={`rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm`}
+                                                    class="rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm"
                                                 >
                                                     {initial}
                                                 </div>
+                                                {room.type === 'direct' && room.opponentId && (
+                                                    <span
+                                                        id={`presence-dot-${room.opponentId}`}
+                                                        class={`w-2.5 h-2.5 rounded-full border-2 border-base-100 absolute bottom-0 right-0 ${room.isOpponentOnline ? 'bg-success' : 'bg-base-content/30'}`}
+                                                    ></span>
+                                                )}
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <div class="flex justify-between items-baseline flex-col ">
-                                                    <h3 class="font-semibold text-sm truncate">
-                                                        {title}
+                                                <div class="flex justify-between items-center gap-2">
+                                                    <h3 class="font-semibold text-sm truncate flex items-center gap-1.5">
+                                                        {room.type === 'group' && (
+                                                            <span class="badge badge-xs badge-ghost">
+                                                                Grup
+                                                            </span>
+                                                        )}
+                                                        <span class="truncate">{title}</span>
                                                     </h3>
-                                                    <p
-                                                        id={room.id}
-                                                        x-bind:class={`activeRoomId === '${room.id}' ? 'text-primary-content/80' : 'text-base-content/60'`}
-                                                        class="text-xs truncate mt-0.5 text-left"
+                                                    <span
+                                                        id={`unread-badge-${room.id}`}
+                                                        class={`badge badge-error badge-xs text-white ${room.unreadCount > 0 ? '' : 'hidden'}`}
                                                     >
-                                                        {room.lastMessage?.sender ===
-                                                        room.opponentId
-                                                            ? room.opponentName + ': '
-                                                            : room.lastMessage?.content && 'You: '}
-                                                        {lastMsg}
-                                                    </p>
+                                                        {room.unreadCount}
+                                                    </span>
                                                 </div>
+                                                <p
+                                                    id={room.id}
+                                                    x-bind:class={`activeRoomId === '${room.id}' ? 'text-primary-content/80' : 'text-base-content/60'`}
+                                                    class="text-xs truncate mt-0.5 text-left"
+                                                >
+                                                    {room.lastMessage?.sender === room.opponentId
+                                                        ? (room.opponentName || '') + ': '
+                                                        : room.lastMessage?.content &&
+                                                            room.type === 'direct'
+                                                          ? 'Anda: '
+                                                          : ''}
+                                                    {lastMsg}
+                                                </p>
                                             </div>
                                         </button>
                                     );
@@ -259,36 +295,210 @@ export const ChatPage = ({
                     <button>close</button>
                 </form>
             </dialog>
+
+            {/* Modal - Create Group */}
+            <dialog id="create_group_modal" class="modal">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg mb-4">Buat Grup Baru</h3>
+                    <form method="POST" action="/group" class="space-y-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Nama Grup</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="name"
+                                minlength="2"
+                                maxlength="50"
+                                placeholder="Contoh: Tim Proyek"
+                                class="input input-bordered w-full"
+                                required
+                            />
+                        </div>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Pilih Anggota Awal</span>
+                            </label>
+                            <div class="max-h-44 overflow-y-auto space-y-1 border border-base-300 rounded-xl p-2">
+                                {availableUsers.length === 0 ? (
+                                    <p class="text-xs text-base-content/60 text-center py-2">
+                                        Belum ada kontak untuk ditambahkan.
+                                    </p>
+                                ) : (
+                                    availableUsers.map((contact) => (
+                                        <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-base-200 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                name="memberIds"
+                                                value={contact.id}
+                                                class="checkbox checkbox-primary checkbox-xs"
+                                            />
+                                            <span class="text-sm">{contact.username}</span>
+                                        </label>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                        <div class="modal-action">
+                            <button
+                                type="button"
+                                onclick="create_group_modal.close()"
+                                class="btn btn-ghost btn-sm"
+                            >
+                                Batal
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                Buat Grup
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
+
+            {/* Modal - Group Members */}
+            <dialog id="group_members_modal" class="modal">
+                <div id="group-members-content" class="modal-box">
+                    <p class="text-sm text-base-content/60">Memuat anggota grup...</p>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
+
+            <div id="toast-container" class="toast toast-end toast-top z-50"></div>
         </Layout>
     );
 };
 
-export const ChatPartial = (
-    isSelf: boolean = false,
-    username: string,
+function renderMessageContent(
+    type: MessageType,
     content: string,
-    roomId: string,
-    createdAt: Date
-) => {
+    attachmentUrl?: string | null,
+    attachmentName?: string | null
+) {
+    if (type === 'image' && attachmentUrl) {
+        return (
+            <a href={attachmentUrl} target="_blank" rel="noopener noreferrer" class="block">
+                <img
+                    src={attachmentUrl}
+                    alt={attachmentName || content}
+                    class="max-w-xs max-h-64 rounded-lg object-cover"
+                    loading="lazy"
+                />
+            </a>
+        );
+    }
+
+    if (type === 'file' && attachmentUrl) {
+        return (
+            <a
+                href={attachmentUrl}
+                download={attachmentName || content}
+                class="flex items-center gap-2 underline font-medium text-sm"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="w-4 h-4 shrink-0"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"
+                    />
+                </svg>
+                <span class="truncate max-w-[200px]">{attachmentName || content}</span>
+            </a>
+        );
+    }
+
+    return content;
+}
+
+export const TypingPartial = (roomId: string, username: string, isTyping: boolean) => {
+    return (
+        <div id={`typing-indicator-${roomId}`} hx-swap-oob="innerHTML">
+            {isTyping ? `${username} sedang mengetik...` : ''}
+        </div>
+    );
+};
+
+export const PresencePartial = (userId: string, isOnline: boolean) => {
+    return (
+        <>
+            <span
+                id={`presence-dot-${userId}`}
+                hx-swap-oob="outerHTML"
+                class={`w-2.5 h-2.5 rounded-full border-2 border-base-100 absolute bottom-0 right-0 ${isOnline ? 'bg-success' : 'bg-base-content/30'}`}
+            ></span>
+            <span
+                id={`presence-panel-${userId}`}
+                hx-swap-oob="outerHTML"
+                class={`text-xs flex items-center gap-1 mt-0.5 ${isOnline ? 'text-success' : 'text-base-content/50'}`}
+            >
+                <span
+                    class={`w-2 h-2 rounded-full inline-block ${isOnline ? 'bg-success' : 'bg-base-content/40'}`}
+                ></span>
+                {isOnline ? 'Online' : 'Offline'}
+            </span>
+        </>
+    );
+};
+
+export const ChatPartial = ({
+    isSelf = false,
+    username,
+    content,
+    roomId,
+    createdAt,
+    type = 'text',
+    attachmentUrl,
+    attachmentName,
+}: {
+    isSelf?: boolean;
+    username: string;
+    content: string;
+    roomId: string;
+    createdAt: Date;
+    type?: MessageType;
+    attachmentUrl?: string | null;
+    attachmentName?: string | null;
+}) => {
+    const preview =
+        type === 'image' ? '📷 Gambar' : type === 'file' ? `📎 ${attachmentName || content}` : content;
+
     return (
         <>
             <div id={'chat-' + roomId} hx-swap-oob="beforeend">
-                <div class={`chat ${isSelf ? 'chat-end' : 'chat-start'}`}>
+                <div
+                    class={`chat ${isSelf ? 'chat-end' : 'chat-start'}`}
+                    data-ws-msg="true"
+                    data-room-id={roomId}
+                    data-sender={username}
+                    data-preview={preview}
+                    data-is-self={isSelf ? 'true' : 'false'}
+                >
                     <div class="chat-header text-xs opacity-70 mb-1">{username}</div>
                     <div
-                        class={`chat-bubble max-w-[80%] ${isSelf ? 'chat-bubble-primary' : 'chat-bubble-neutral'} `}
+                        class={`chat-bubble max-w-[80%] ${isSelf ? 'chat-bubble-primary' : 'chat-bubble-neutral'}`}
                     >
-                        {content}
+                        {renderMessageContent(type, content, attachmentUrl, attachmentName)}
                     </div>
                     <div
-                        x-data={`{ time: '${createdAt.toISOString()}'} `}
+                        x-data={`{ time: '${createdAt.toISOString()}' }`}
                         x-text="formatChatTime(time)"
                         class="chat-footer opacity-70 text-xs"
                     ></div>
                 </div>
             </div>
             <p id={roomId} hx-swap-oob="innerHTML">
-                {isSelf ? 'You' : username}: {content}
+                {isSelf ? 'Anda' : username}: {preview}
             </p>
         </>
     );
@@ -296,7 +506,15 @@ export const ChatPartial = (
 
 export const Chats = (
     userId: string,
-    messages: { senderId: string; sender: string; content: string; createdAt: Date }[]
+    messages: {
+        senderId: string;
+        sender: string;
+        type?: MessageType;
+        content: string;
+        attachmentUrl?: string | null;
+        attachmentName?: string | null;
+        createdAt: Date;
+    }[]
 ) => {
     return (
         <>
@@ -313,10 +531,15 @@ export const Chats = (
                                 isSelf ? 'chat-bubble-primary' : 'chat-bubble-neutral'
                             }`}
                         >
-                            {m.content}
+                            {renderMessageContent(
+                                m.type ?? 'text',
+                                m.content,
+                                m.attachmentUrl,
+                                m.attachmentName
+                            )}
                         </div>
                         <div
-                            x-data={`{ time: '${m.createdAt.toISOString()}'} `}
+                            x-data={`{ time: '${m.createdAt.toISOString()}' }`}
                             x-text="formatChatTime(time)"
                             class="chat-footer opacity-70 text-xs"
                         ></div>
@@ -337,9 +560,15 @@ export const ChatPanel = ({
     room: {
         id: string;
         name: string;
+        type: RoomType;
+        opponentId: string;
         opponentName: string;
+        isOpponentOnline: boolean;
+        memberCount: number;
     };
 }) => {
+    const title = room.type === 'group' ? room.name || 'Grup' : room.opponentName || room.name || 'Direct Message';
+
     return (
         <div
             id={'chat-panel'}
@@ -349,9 +578,8 @@ export const ChatPanel = ({
             {/* Chat Header */}
             <header class="p-4 bg-base-100 border-b border-base-300 flex justify-between items-center z-10 shadow-sm">
                 <div class="flex items-center gap-3">
-                    {/* Back Button for Mobile */}
                     <button
-                        x-on:click="$refs.chatPanel.innerHTML = ''"
+                        x-on:click="$refs.chatPanel.innerHTML = ''; activeRoomId = null; window.__activeRoomId = null;"
                         class="btn btn-ghost btn-circle btn-sm md:hidden"
                         aria-label="Kembali ke daftar percakapan"
                     >
@@ -372,19 +600,40 @@ export const ChatPanel = ({
                     </button>
                     <div class="avatar placeholder">
                         <div class="bg-neutral text-neutral-content rounded-full w-10 h-10 flex items-center justify-center font-bold">
-                            {(room.opponentName || room.name || 'D').charAt(0).toUpperCase()}
+                            {title.charAt(0).toUpperCase()}
                         </div>
                     </div>
                     <div>
-                        <h1 class="font-bold text-base leading-tight">
-                            {room.opponentName || room.name || 'Direct Message'}
-                        </h1>
-                        <span class="text-xs text-success flex items-center gap-1 mt-0.5">
-                            <span class="w-2 h-2 rounded-full bg-success inline-block"></span>{' '}
-                            Direct Chat
-                        </span>
+                        <h1 class="font-bold text-base leading-tight">{title}</h1>
+                        {room.type === 'group' ? (
+                            <span class="text-xs text-base-content/60 flex items-center gap-1 mt-0.5">
+                                {room.memberCount} anggota
+                            </span>
+                        ) : (
+                            <span
+                                id={`presence-panel-${room.opponentId}`}
+                                class={`text-xs flex items-center gap-1 mt-0.5 ${room.isOpponentOnline ? 'text-success' : 'text-base-content/50'}`}
+                            >
+                                <span
+                                    class={`w-2 h-2 rounded-full inline-block ${room.isOpponentOnline ? 'bg-success' : 'bg-base-content/40'}`}
+                                ></span>
+                                {room.isOpponentOnline ? 'Online' : 'Offline'}
+                            </span>
+                        )}
                     </div>
                 </div>
+
+                {room.type === 'group' && (
+                    <button
+                        type="button"
+                        class="btn btn-outline btn-xs"
+                        hx-get={`/group/${room.id}/members`}
+                        hx-target="#group-members-content"
+                        onclick="group_members_modal.showModal()"
+                    >
+                        Anggota
+                    </button>
+                )}
             </header>
 
             {/* Chat Window (Scrollable Area) */}
@@ -427,10 +676,15 @@ export const ChatPanel = ({
                                         isSelf ? 'chat-bubble-primary' : 'chat-bubble-neutral'
                                     }`}
                                 >
-                                    {m.content}
+                                    {renderMessageContent(
+                                        m.type ?? 'text',
+                                        m.content,
+                                        m.attachmentUrl,
+                                        m.attachmentName
+                                    )}
                                 </div>
                                 <div
-                                    x-data={`{ time: '${m.createdAt.toISOString()}'} `}
+                                    x-data={`{ time: '${m.createdAt.toISOString()}' }`}
                                     x-text="formatChatTime(time)"
                                     class="chat-footer opacity-70 text-xs"
                                 ></div>
@@ -438,41 +692,81 @@ export const ChatPanel = ({
                         );
                     })}
             </div>
+
+            <div
+                id={`typing-indicator-${room.id}`}
+                class="px-4 py-1 text-xs italic text-base-content/60 min-h-5 bg-base-100"
+            ></div>
+
+            <div id="upload-alert" class="px-4"></div>
+
             {/* Footer / Input Form */}
-            <form
-                id="form"
-                class="p-4 bg-base-100 border-t border-base-300 flex gap-2 items-center"
-                ws-send
-            >
-                <input type="hidden" name="type" value="chatting" />
-                <input type="hidden" name="roomId" value={room.id} />
-                <input
-                    id="input-message"
-                    type="text"
-                    name="message"
-                    class="input input-bordered input-primary flex-1 focus:outline-none"
-                    autocomplete="off"
-                    required
-                    placeholder="Tulis pesan..."
-                />
-                <button type="submit" class="btn btn-primary px-6">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="w-5 h-5"
+            <div class="p-4 bg-base-100 border-t border-base-300 flex gap-2 items-center">
+                <form
+                    hx-post={`/room/${room.id}/upload`}
+                    hx-encoding="multipart/form-data"
+                    hx-target="#upload-alert"
+                    hx-trigger="change from:find input[type=file]"
+                >
+                    <label
+                        class="btn btn-ghost btn-circle btn-sm"
+                        title="Kirim Gambar atau File (maks. 5 MB)"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                        <input
+                            type="file"
+                            name="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,application/zip"
+                            class="hidden"
                         />
-                    </svg>
-                    Kirim
-                </button>
-            </form>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor"
+                            class="w-5 h-5"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"
+                            />
+                        </svg>
+                    </label>
+                </form>
+
+                <form id="form" class="flex-1 flex gap-2 items-center" hx-ws:send>
+                    <input type="hidden" name="type" value="chatting" />
+                    <input type="hidden" name="roomId" value={room.id} />
+                    <input
+                        id="input-message"
+                        type="text"
+                        name="message"
+                        data-room-id={room.id}
+                        class="input input-bordered input-primary flex-1 focus:outline-none"
+                        autocomplete="off"
+                        required
+                        placeholder="Tulis pesan..."
+                    />
+                    <button type="submit" class="btn btn-primary px-6">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor"
+                            class="w-5 h-5"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                            />
+                        </svg>
+                        Kirim
+                    </button>
+                </form>
+            </div>
         </div>
     );
 };
@@ -480,17 +774,22 @@ export const ChatPanel = ({
 export const ContactsPage = ({
     contacts,
     user,
-    friendRequests = [],
+    incomingRequests = [],
+    outgoingRequests = [],
+    blockedUsers = [],
 }: {
     user: User;
     contacts: RequestFriendship[];
-    friendRequests?: RequestFriendship[];
+    incomingRequests?: RequestFriendship[];
+    outgoingRequests?: RequestFriendship[];
+    blockedUsers?: RequestFriendship[];
 }) => {
     const scripts: Scripts = {
         alpine: true,
         htmx: true,
         customScript: [{ src: '/public/js/chat-page.js', defer: true }],
     };
+    const totalRequests = incomingRequests.length + outgoingRequests.length;
 
     return (
         <Layout title="Kelola Kontak" script={scripts}>
@@ -561,8 +860,8 @@ export const ContactsPage = ({
                             </a>
                         </div>
 
-                        {/* Navigation Tabs (Kontak vs Permintaan) */}
-                        <div class="p-2 border-b border-base-300 grid grid-cols-2 gap-1 bg-base-100">
+                        {/* Navigation Tabs (Kontak, Permintaan, Diblokir) */}
+                        <div class="p-2 border-b border-base-300 grid grid-cols-3 gap-1 bg-base-100">
                             <button
                                 x-on:click="activeTab = 'contacts'"
                                 x-bind:class="activeTab === 'contacts' ? 'btn-primary' : 'btn-ghost'"
@@ -576,18 +875,23 @@ export const ContactsPage = ({
                                 class="btn btn-xs rounded-lg relative"
                             >
                                 Permintaan
-                                {friendRequests.length > 0 && (
-                                    <span class="badge badge-error badge-xs">
-                                        {friendRequests.length}
-                                    </span>
+                                {totalRequests > 0 && (
+                                    <span class="badge badge-error badge-xs">{totalRequests}</span>
                                 )}
+                            </button>
+                            <button
+                                x-on:click="activeTab = 'blocked'"
+                                x-bind:class="activeTab === 'blocked' ? 'btn-primary' : 'btn-ghost'"
+                                class="btn btn-xs rounded-lg"
+                            >
+                                Diblokir ({blockedUsers.length})
                             </button>
                         </div>
 
                         {/* Direct Actions & Title */}
                         <div class="p-3 border-b border-base-300 flex justify-between items-center bg-base-100">
                             <span
-                                x-text="activeTab === 'contacts' ? 'Daftar Kontak' : 'Permintaan Pertemanan'"
+                                x-text="activeTab === 'contacts' ? 'Daftar Kontak' : activeTab === 'requests' ? 'Permintaan Pertemanan' : 'Pengguna Diblokir'"
                                 class="text-xs font-bold uppercase tracking-wider text-base-content/60"
                             ></span>
                             <button
@@ -608,7 +912,7 @@ export const ContactsPage = ({
                                         d="M12 4.5v15m7.5-7.5h-15"
                                     />
                                 </svg>
-                                Kirim Permintaan
+                                Tambah Teman
                             </button>
                         </div>
 
@@ -697,95 +1001,184 @@ export const ContactsPage = ({
                                                     </svg>
                                                 </button>
                                             </form>
-                                            <form
-                                                method="POST"
-                                                action={`/contacts/delete/${contact.oppositeId}`}
+                                            <button
+                                                type="button"
+                                                class="btn btn-ghost btn-circle btn-xs text-error"
+                                                title="Blokir Pengguna"
+                                                hx-confirm={`Blokir ${contact.username}? Anda tidak akan bisa saling mengirim pesan.`}
+                                                hx-post="/contact/block"
+                                                hx-vals={`{"id": "${contact.oppositeId}"}`}
                                             >
-                                                <button
-                                                    type="submit"
-                                                    class="btn btn-ghost btn-circle btn-xs text-error"
-                                                    title="Hapus Kontak"
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke-width="1.5"
+                                                    stroke="currentColor"
+                                                    class="w-4 h-4"
                                                 >
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke-width="1.5"
-                                                        stroke="currentColor"
-                                                        class="w-4 h-4"
-                                                    >
-                                                        <path
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                            d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                                                        />
-                                                    </svg>
-                                                </button>
-                                            </form>
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"
+                                                    />
+                                                </svg>
+                                            </button>
                                         </div>
                                     </div>
                                 ))
                             )}
                         </div>
 
-                        {/* TAB 2: Friend Requests List */}
+                        {/* TAB 2: Friend Requests List (Incoming & Outgoing) */}
                         <div
                             id="friend-requests"
                             x-show="activeTab === 'requests'"
-                            class="flex-1 overflow-y-auto p-2 space-y-1"
+                            class="flex-1 overflow-y-auto p-2 space-y-3"
                         >
-                            {friendRequests.length === 0 ? (
+                            {totalRequests === 0 ? (
                                 <div class="text-center p-6 text-base-content/50 text-sm">
-                                    Tidak ada permintaan pertemanan masuk.
+                                    Tidak ada permintaan pertemanan.
                                 </div>
                             ) : (
-                                friendRequests.map((req) => (
+                                <>
+                                    {incomingRequests.length > 0 && (
+                                        <div class="space-y-1">
+                                            <p class="px-2 text-[11px] font-bold uppercase tracking-wider text-base-content/50">
+                                                Permintaan Masuk ({incomingRequests.length})
+                                            </p>
+                                            {incomingRequests.map((req) => (
+                                                <div
+                                                    x-show={`!search || '${req.username}'.toLowerCase().includes(search.toLowerCase()) || '${req.oppositeId}'.includes(search)`}
+                                                    class="flex items-center justify-between p-3 rounded-xl hover:bg-base-200 transition w-full"
+                                                >
+                                                    <div class="flex items-center gap-3 truncate">
+                                                        <div class="avatar placeholder shrink-0">
+                                                            <div class="bg-accent text-accent-content rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm">
+                                                                {req.username.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        </div>
+                                                        <div class="truncate text-left">
+                                                            <h3 class="font-semibold text-sm truncate">
+                                                                {req.username}
+                                                            </h3>
+                                                            <span class="text-xs text-base-content/50 block truncate">
+                                                                ID: {req.oppositeId}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex items-center gap-1">
+                                                        <button
+                                                            class="btn btn-success btn-xs text-white"
+                                                            title="Terima Permintaan"
+                                                            hx-confirm={`Terima permintaan pertemanan dari ${req.username}?`}
+                                                            hx-patch="/contact"
+                                                            hx-vals={`{"id": "${req.oppositeId}", "status": "accepted"}`}
+                                                        >
+                                                            Terima
+                                                        </button>
+                                                        <button
+                                                            class="btn btn-ghost btn-xs text-error"
+                                                            title="Tolak Permintaan"
+                                                            hx-confirm={`Tolak permintaan pertemanan dari ${req.username}?`}
+                                                            hx-patch="/contact"
+                                                            hx-vals={`{"id": "${req.oppositeId}", "status": "rejected"}`}
+                                                        >
+                                                            Tolak
+                                                        </button>
+                                                        <button
+                                                            class="btn btn-ghost btn-xs text-warning"
+                                                            title="Blokir"
+                                                            hx-confirm={`Blokir ${req.username}?`}
+                                                            hx-post="/contact/block"
+                                                            hx-vals={`{"id": "${req.oppositeId}"}`}
+                                                        >
+                                                            Blokir
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {outgoingRequests.length > 0 && (
+                                        <div class="space-y-1">
+                                            <p class="px-2 text-[11px] font-bold uppercase tracking-wider text-base-content/50">
+                                                Permintaan Terkirim ({outgoingRequests.length})
+                                            </p>
+                                            {outgoingRequests.map((req) => (
+                                                <div
+                                                    x-show={`!search || '${req.username}'.toLowerCase().includes(search.toLowerCase()) || '${req.oppositeId}'.includes(search)`}
+                                                    class="flex items-center justify-between p-3 rounded-xl hover:bg-base-200 transition w-full"
+                                                >
+                                                    <div class="flex items-center gap-3 truncate">
+                                                        <div class="avatar placeholder shrink-0">
+                                                            <div class="bg-base-300 text-base-content rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm">
+                                                                {req.username.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        </div>
+                                                        <div class="truncate text-left">
+                                                            <h3 class="font-semibold text-sm truncate">
+                                                                {req.username}
+                                                            </h3>
+                                                            <span class="text-xs text-base-content/50 block truncate">
+                                                                Menunggu konfirmasi
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        class="btn btn-ghost btn-xs text-error"
+                                                        hx-confirm={`Batalkan permintaan pertemanan ke ${req.username}?`}
+                                                        hx-delete={`/contact/${req.oppositeId}`}
+                                                    >
+                                                        Batalkan
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
+                        {/* TAB 3: Blocked Users List */}
+                        <div
+                            id="blocked-users"
+                            x-show="activeTab === 'blocked'"
+                            class="flex-1 overflow-y-auto p-2 space-y-1"
+                        >
+                            {blockedUsers.length === 0 ? (
+                                <div class="text-center p-6 text-base-content/50 text-sm">
+                                    Tidak ada pengguna yang diblokir.
+                                </div>
+                            ) : (
+                                blockedUsers.map((blocked) => (
                                     <div
-                                        x-show={`!search || '${req.username}'.toLowerCase().includes(search.toLowerCase()) || '${req.oppositeId}'.includes(search)`}
+                                        x-show={`!search || '${blocked.username}'.toLowerCase().includes(search.toLowerCase()) || '${blocked.oppositeId}'.includes(search)`}
                                         class="flex items-center justify-between p-3 rounded-xl hover:bg-base-200 transition w-full"
                                     >
                                         <div class="flex items-center gap-3 truncate">
                                             <div class="avatar placeholder shrink-0">
-                                                <div class="bg-accent text-accent-content rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm">
-                                                    {req.username.charAt(0).toUpperCase()}
+                                                <div class="bg-error/20 text-error rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm">
+                                                    {blocked.username.charAt(0).toUpperCase()}
                                                 </div>
                                             </div>
                                             <div class="truncate text-left">
                                                 <h3 class="font-semibold text-sm truncate">
-                                                    {req.username}
+                                                    {blocked.username}
                                                 </h3>
                                                 <span class="text-xs text-base-content/50 block truncate">
-                                                    ID: {req.oppositeId}
+                                                    ID: {blocked.oppositeId}
                                                 </span>
                                             </div>
                                         </div>
-                                        <div class="flex items-center gap-1">
-                                            {/* Confirm Button */}
-                                            <button
-                                                class="btn btn-success btn-xs text-white"
-                                                title="Terima Permintaan"
-                                                hx-confirm={`Terima permintaan pertemanan dari ${req.username}?`}
-                                                hx-patch="/contact"
-                                                hx-target="closest [x-show]"
-                                                hx-swap="outerHTML"
-                                                hx-vals={`{"id": "${req.oppositeId}", "status": "accepted"}`}
-                                            >
-                                                Konfirmasi
-                                            </button>
-                                            {/* Reject Button */}
-
-                                            <button
-                                                class="btn btn-ghost btn-xs text-error"
-                                                title="Tolak Permintaan"
-                                                hx-confirm={`Tolak permintaan pertemanan dari ${req.username}?`}
-                                                hx-patch="/contact"
-                                                hx-target="closest [x-show]"
-                                                hx-swap="outerHTML"
-                                                hx-vals={`{"id": "${req.oppositeId}", "status": "rejected"}`}
-                                            >
-                                                Tolak
-                                            </button>
-                                        </div>
+                                        <button
+                                            class="btn btn-outline btn-xs"
+                                            hx-confirm={`Buka blokir ${blocked.username}?`}
+                                            hx-delete={`/contact/block/${blocked.oppositeId}`}
+                                        >
+                                            Buka Blokir
+                                        </button>
                                     </div>
                                 ))
                             )}
@@ -826,44 +1219,67 @@ export const ContactsPage = ({
                 <MobileNavigation />
             </div>
 
-            {/* Modal - Send Friend Request via Numeric ID */}
+            {/* Modal - Cari Teman (Username / ID 6 Digit) & Link Undangan */}
             <dialog id="add_contact_modal" class="modal">
-                <div class="modal-box">
-                    <h3 class="font-bold text-lg mb-4">Kirim Permintaan Pertemanan</h3>
+                <div class="modal-box space-y-4">
+                    <h3 class="font-bold text-lg">Tambah Teman</h3>
 
                     <div id="modal-alert-message"></div>
 
-                    <form hx-post="/contact" hx-target="#modal-alert-message" class="space-y-4">
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text font-semibold">
-                                    ID Pengguna Target (Angka)
-                                </span>
-                            </label>
-                            <input
-                                type="text"
-                                name="id"
-                                pattern="[0-9]*"
-                                inputmode="numeric"
-                                placeholder="Masukkan ID Angka (contoh: 12345)"
-                                class="input input-bordered w-full"
-                                required
-                                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                            />
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">
+                                Cari Username atau ID 6 Digit
+                            </span>
+                        </label>
+                        <input
+                            type="text"
+                            name="q"
+                            placeholder="Ketik minimal 3 huruf username atau ID 6 digit..."
+                            class="input input-bordered w-full input-sm"
+                            hx-get="/contact/search"
+                            hx-trigger="input changed delay:400ms, search"
+                            hx-target="#search-user-results"
+                        />
+                    </div>
+
+                    <div id="search-user-results" class="max-h-56 overflow-y-auto space-y-2">
+                        <p class="text-xs text-base-content/50">
+                            Ketik minimal 3 karakter username atau ID 6 digit.
+                        </p>
+                    </div>
+
+                    <div class="divider text-xs text-base-content/50 my-2">atau</div>
+
+                    <div
+                        class="flex items-center justify-between gap-2 bg-base-200 p-3 rounded-xl"
+                        x-data={`{ invitePath: '/contact/invite/${user.id}', copied: false }`}
+                    >
+                        <div class="truncate text-xs">
+                            <p class="font-semibold">Link Undangan Anda</p>
+                            <p class="text-base-content/60 truncate" x-text="window.location.origin + invitePath"></p>
                         </div>
-                        <div class="modal-action">
-                            <button
-                                type="button"
-                                onclick="add_contact_modal.close()"
-                                class="btn btn-ghost btn-sm"
-                            >
-                                Batal
-                            </button>
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                Kirim Permintaan
-                            </button>
-                        </div>
-                    </form>
+                        <button
+                            type="button"
+                            class="btn btn-outline btn-xs shrink-0"
+                            x-on:click="
+                                navigator.clipboard.writeText(window.location.origin + invitePath);
+                                copied = true;
+                                setTimeout(() => copied = false, 2000);
+                            "
+                            x-text="copied ? 'Tersalin!' : 'Salin Link'"
+                        ></button>
+                    </div>
+
+                    <div class="modal-action">
+                        <button
+                            type="button"
+                            onclick="add_contact_modal.close()"
+                            class="btn btn-ghost btn-sm"
+                        >
+                            Tutup
+                        </button>
+                    </div>
                 </div>
                 <form method="dialog" class="modal-backdrop">
                     <button>close</button>
@@ -926,5 +1342,272 @@ export function ContactList({ contacts }: { contacts: RequestFriendship[] }) {
                 ))
             )}
         </>
+    );
+}
+
+export function SearchUserResults({
+    results,
+    hint,
+}: {
+    results: UserSearchResult[];
+    hint?: string;
+}) {
+    if (hint) {
+        return <p class="text-xs text-base-content/60 py-2">{hint}</p>;
+    }
+
+    if (results.length === 0) {
+        return <p class="text-xs text-base-content/60 py-2">Pengguna tidak ditemukan.</p>;
+    }
+
+    return (
+        <div class="space-y-1.5">
+            {results.map((item) => (
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-base-200/70">
+                    <div class="flex items-center gap-2.5 truncate">
+                        <div class="avatar placeholder shrink-0">
+                            <div class="bg-primary text-primary-content rounded-full w-8 h-8 flex items-center justify-center font-bold text-xs">
+                                {item.username.charAt(0).toUpperCase()}
+                            </div>
+                        </div>
+                        <div class="truncate">
+                            <p class="font-semibold text-sm truncate">{item.username}</p>
+                            <span class="text-[11px] text-base-content/50">ID: {item.id}</span>
+                        </div>
+                    </div>
+
+                    {item.relationStatus === 'none' && (
+                        <button
+                            type="button"
+                            class="btn btn-primary btn-xs"
+                            hx-post="/contact"
+                            hx-target="#modal-alert-message"
+                            hx-vals={`{"id": "${item.id}"}`}
+                        >
+                            Tambah Teman
+                        </button>
+                    )}
+                    {item.relationStatus === 'pending_outgoing' && (
+                        <span class="badge badge-ghost badge-sm">Menunggu</span>
+                    )}
+                    {item.relationStatus === 'pending_incoming' && (
+                        <button
+                            type="button"
+                            class="btn btn-success btn-xs text-white"
+                            hx-patch="/contact"
+                            hx-vals={`{"id": "${item.id}", "status": "accepted"}`}
+                        >
+                            Terima
+                        </button>
+                    )}
+                    {item.relationStatus === 'accepted' && (
+                        <span class="badge badge-success badge-sm text-white">Berteman</span>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+export function InvitePage({
+    user,
+    target,
+    isSelf,
+}: {
+    user: User;
+    target: UserSearchResult | null;
+    isSelf: boolean;
+}) {
+    return (
+        <Layout title="Undangan Pertemanan" script={{ htmx: true, alpine: true }}>
+            <div class="min-h-screen bg-base-200 flex items-center justify-center p-4">
+                <div class="card bg-base-100 border border-base-300 shadow-xl w-full max-w-md">
+                    <div class="card-body items-center text-center gap-4">
+                        {isSelf ? (
+                            <>
+                                <h2 class="card-title">Link Undangan Anda</h2>
+                                <p class="text-sm text-base-content/70">
+                                    Bagikan link ini kepada teman agar mereka dapat menambahkan{' '}
+                                    <strong>{user.username}</strong> (ID: {user.id}).
+                                </p>
+                                <a href="/contact" class="btn btn-primary btn-sm">
+                                    Kembali ke Kontak
+                                </a>
+                            </>
+                        ) : !target ? (
+                            <>
+                                <h2 class="card-title text-error">Undangan Tidak Ditemukan</h2>
+                                <p class="text-sm text-base-content/70">
+                                    Pengguna tidak ditemukan atau undangan tidak tersedia.
+                                </p>
+                                <a href="/contact" class="btn btn-ghost btn-sm">
+                                    Kembali ke Kontak
+                                </a>
+                            </>
+                        ) : (
+                            <>
+                                <div class="avatar placeholder">
+                                    <div class="bg-primary text-primary-content rounded-full w-16 h-16 flex items-center justify-center font-bold text-2xl">
+                                        {target.username.charAt(0).toUpperCase()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold">{target.username}</h2>
+                                    <p class="text-xs text-base-content/60">ID: {target.id}</p>
+                                </div>
+
+                                <div id="invite-alert" class="w-full"></div>
+
+                                {target.relationStatus === 'none' && (
+                                    <button
+                                        type="button"
+                                        class="btn btn-primary w-full"
+                                        hx-post="/contact"
+                                        hx-target="#invite-alert"
+                                        hx-vals={`{"id": "${target.id}"}`}
+                                    >
+                                        Kirim Permintaan Pertemanan
+                                    </button>
+                                )}
+                                {target.relationStatus === 'pending_outgoing' && (
+                                    <span class="badge badge-ghost">
+                                        Permintaan pertemanan sudah dikirim
+                                    </span>
+                                )}
+                                {target.relationStatus === 'pending_incoming' && (
+                                    <button
+                                        type="button"
+                                        class="btn btn-success text-white w-full"
+                                        hx-patch="/contact"
+                                        hx-vals={`{"id": "${target.id}", "status": "accepted"}`}
+                                    >
+                                        Terima Permintaan Pertemanan
+                                    </button>
+                                )}
+                                {target.relationStatus === 'accepted' && (
+                                    <form method="POST" action="/direct" class="w-full">
+                                        <input
+                                            type="hidden"
+                                            name="targetUserId"
+                                            value={target.id}
+                                        />
+                                        <button type="submit" class="btn btn-primary w-full">
+                                            Mulai Obrolan
+                                        </button>
+                                    </form>
+                                )}
+
+                                <a href="/contact" class="btn btn-ghost btn-sm">
+                                    Kembali ke Kontak
+                                </a>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </Layout>
+    );
+}
+
+export function GroupMembersModalContent({
+    roomId,
+    roomName,
+    members,
+    currentUserId,
+    currentUserRole,
+    addableContacts,
+}: {
+    roomId: string;
+    roomName: string;
+    members: { userId: string; username: string; role: string }[];
+    currentUserId: string;
+    currentUserRole: string;
+    addableContacts: { id: string; username: string }[];
+}) {
+    const canManage = currentUserRole === 'owner' || currentUserRole === 'admin';
+
+    return (
+        <div class="space-y-4">
+            <h3 class="font-bold text-lg">Anggota Grup: {roomName}</h3>
+
+            <div id="group-member-alert"></div>
+
+            {canManage && addableContacts.length > 0 && (
+                <form
+                    hx-post={`/group/${roomId}/members`}
+                    hx-target="#group-member-alert"
+                    class="flex gap-2"
+                >
+                    <select name="userId" class="select select-bordered select-sm flex-1" required>
+                        <option value="" disabled selected>
+                            Pilih kontak untuk ditambahkan...
+                        </option>
+                        {addableContacts.map((c) => (
+                            <option value={c.id}>{c.username}</option>
+                        ))}
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        Tambah
+                    </button>
+                </form>
+            )}
+
+            <div class="max-h-60 overflow-y-auto space-y-2">
+                {members.map((m) => (
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-base-200">
+                        <div class="flex items-center gap-2.5">
+                            <div class="avatar placeholder">
+                                <div class="bg-neutral text-neutral-content rounded-full w-8 h-8 flex items-center justify-center font-bold text-xs">
+                                    {m.username.charAt(0).toUpperCase()}
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold">{m.username}</p>
+                                <span class="text-[11px] text-base-content/60 capitalize">
+                                    {m.role === 'owner'
+                                        ? 'Pemilik'
+                                        : m.role === 'admin'
+                                          ? 'Admin'
+                                          : 'Anggota'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {m.userId === currentUserId ? (
+                            <button
+                                type="button"
+                                class="btn btn-ghost btn-xs text-error"
+                                hx-confirm="Keluar dari grup ini?"
+                                hx-delete={`/group/${roomId}/members/${m.userId}`}
+                            >
+                                Keluar
+                            </button>
+                        ) : (
+                            canManage &&
+                            m.role !== 'owner' && (
+                                <button
+                                    type="button"
+                                    class="btn btn-ghost btn-xs text-error"
+                                    hx-confirm={`Keluarkan ${m.username} dari grup?`}
+                                    hx-delete={`/group/${roomId}/members/${m.userId}`}
+                                >
+                                    Keluarkan
+                                </button>
+                            )
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            <div class="modal-action">
+                <button
+                    type="button"
+                    onclick="group_members_modal.close()"
+                    class="btn btn-ghost btn-sm"
+                >
+                    Tutup
+                </button>
+            </div>
+        </div>
     );
 }

@@ -1,33 +1,12 @@
 {
   "version": "7",
-  "dialect": "sqlite",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "6",
-      "when": 1777348687791,
-      "tag": "0000_stormy_longshot",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1785769166335,
-      "tag": "0001_common_newton_destine",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1787197308279,
-      "tag": "0002_tough_loki",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1787224278276,
-      "tag": "0003_pale_vance_astro",
+      "version": "7",
+      "when": 1795035850221,
+      "tag": "0000_pretty_captain_britain",
       "breakpoints": true
     }
   ]

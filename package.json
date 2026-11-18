@@ -11,10 +11,12 @@
         "@elysia/static": "^1.4.11",
         "@elysiajs/html": "^1.4.2",
         "@kitajs/html": "^4.2.13",
-        "@libsql/client": "^0.17.4",
         "@tailwindcss/cli": "^4.3.3",
+        "alpinejs": "^3.17.5",
         "drizzle-orm": "^0.45.2",
         "elysia": "^1.4.29",
+        "htmx.org": "4.0.2",
+        "postgres": "^4.1.1",
         "tailwindcss": "^4.3.3",
         "zod": "^4.4.3"
     },

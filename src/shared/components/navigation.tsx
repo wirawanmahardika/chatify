@@ -3,11 +3,10 @@ import { Html } from '@elysiajs/html';
 export function DesktopNavigation() {
     return (
         <nav
-            x-data={'{ currentPath:  window.location.pathname }'}
+            x-data={'{ currentPath: window.location.pathname }'}
             class="hidden md:flex flex-col items-center py-4 px-2 bg-base-200 border-r border-base-300 gap-4 shrink-0"
         >
             <div class="flex-1 flex flex-col gap-2">
-                {/* Chat / Messages Link */}
                 <a
                     href="/"
                     title="Obrolan"
@@ -32,7 +31,6 @@ export function DesktopNavigation() {
                     </svg>
                 </a>
 
-                {/* Contacts Link */}
                 <a
                     href="/contact"
                     title="Kontak"
@@ -58,7 +56,6 @@ export function DesktopNavigation() {
                 </a>
             </div>
 
-            {/* Settings Link */}
             <a
                 href="/profile"
                 title="Pengaturan"
@@ -88,8 +85,9 @@ export function DesktopNavigation() {
 
 export function MobileNavigation() {
     return (
-        <div x-data={'{ currentPath:  window.location.pathname }'} class="dock md:hidden">
+        <div x-data={'{ currentPath: window.location.pathname }'} class="dock md:hidden">
             <button
+                type="button"
                 x-on:click="window.location.href = '/'"
                 x-bind:class={"currentPath === '/' && 'dock-active'"}
             >
@@ -107,10 +105,11 @@ export function MobileNavigation() {
                         d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"
                     />
                 </svg>
-                <span class="dock-label">Chat</span>
+                <span class="dock-label">Obrolan</span>
             </button>
 
             <button
+                type="button"
                 x-on:click="window.location.href = '/contact'"
                 x-bind:class={"currentPath.startsWith('/contact') && 'dock-active'"}
             >
@@ -132,7 +131,8 @@ export function MobileNavigation() {
             </button>
 
             <button
-                x-on:click="window.location.href = 'profile'"
+                type="button"
+                x-on:click="window.location.href = '/profile'"
                 x-bind:class={"currentPath.startsWith('/profile') && 'dock-active'"}
             >
                 <svg
@@ -149,72 +149,7 @@ export function MobileNavigation() {
                         d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
                     />
                 </svg>
-
                 <span class="dock-label">Profil</span>
-            </button>
-        </div>
-    );
-}
-
-export function ModalAlert({ status, msg }: { msg: string; status: 'success' | 'error' }) {
-    const alertClass = status === 'success' ? 'alert-success' : 'alert-error';
-
-    return (
-        <div
-            class={`alert ${alertClass} shadow-sm mb-4 flex items-center justify-between p-3 rounded-lg`}
-        >
-            <div class="flex items-center gap-2">
-                {status === 'success' ? (
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="stroke-current shrink-0 h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                    </svg>
-                ) : (
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="stroke-current shrink-0 h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                    </svg>
-                )}
-                <span class="text-xs font-semibold">{msg}</span>
-            </div>
-            <button
-                type="button"
-                onclick="this.closest('.alert').remove()"
-                class="btn btn-ghost btn-xs btn-circle"
-                title="Hapus Pesan"
-            >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M6 18L18 6M6 6l12 12"
-                    />
-                </svg>
             </button>
         </div>
     );
