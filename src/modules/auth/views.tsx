@@ -45,7 +45,7 @@ export const LoginPage = () => {
                             hx-post="/auth/login"
                             hx-target=".alert.alert-error"
                             hx-swap="innerHTML"
-                            hx-on--before-request="htmx.find('.alert.alert-error').innerHTML = ''"
+                            {...{ 'hx-on:htmx:before:request': "htmx.find('.alert.alert-error').innerHTML = ''" }}
                             class="flex flex-col gap-y-3"
                         >
                             {/* Username Field */}
@@ -180,7 +180,7 @@ export const RegisterView = () => {
                             hx-target=".alert.alert-error"
                             hx-swap="innerHTML"
                             class="flex flex-col gap-y-3"
-                            hx-on--before-request="htmx.find('.alert.alert-error').innerHTML = ''"
+                            {...{ 'hx-on:htmx:before:request': "htmx.find('.alert.alert-error').innerHTML = ''" }}
                         >
                             {/* Username Field */}
                             <div class="form-control">

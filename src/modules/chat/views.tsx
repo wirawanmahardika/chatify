@@ -160,7 +160,7 @@ export const ChatPage = ({
                                             hx-get={`/room/${room.id}`}
                                             hx-target="#chat-panel"
                                             hx-swap="outerHTML"
-                                            hx-on-htmx-after-request="scrollToBottom()"
+                                            {...{ 'hx-on:htmx:after:request': 'scrollToBottom()' }}
                                             x-on:click={`activeRoomId = '${room.id}'; window.__activeRoomId = '${room.id}'; clearUnreadBadge('${room.id}')`}
                                             x-bind:class={`activeRoomId === '${room.id}' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200 text-base-content'`}
                                             class="flex items-center gap-3 p-3 rounded-xl transition w-full"
@@ -413,7 +413,7 @@ function renderMessageContent(
                         d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"
                     />
                 </svg>
-                <span class="truncate max-w-[200px]">{attachmentName || content}</span>
+                <span class="truncate max-w-50">{attachmentName || content}</span>
             </a>
         );
     }
@@ -650,10 +650,10 @@ export const ChatPanel = ({
                         hx-get={`/messages/${room.id}`}
                         hx-target="#message-loader"
                         hx-swap="afterend"
-                        hx-on-htmx-config-request="
-                            const beforeDate = htmx.find('#message-loader').nextElementSibling.dataset.createdAt
-                            event.detail.parameters['beforeDate'] = beforeDate
-                        "
+                        {...{
+                            'hx-on:htmx:config:request':
+                                "const beforeDate = htmx.find('#message-loader')?.nextElementSibling?.dataset?.createdAt; if (beforeDate) event.detail.ctx.request.body.set('beforeDate', beforeDate);",
+                        }}
                     >
                         {messages.length > 0
                             ? 'Lihat percakapan sebelumnya'

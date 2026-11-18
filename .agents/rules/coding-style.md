@@ -33,6 +33,7 @@ trigger: always_on
 - Wrap full pages with `Layout` from `src/shared/views/layout.tsx` and enable only the scripts needed (`alpine`, `htmx`, `htmxWebSocket`, `customScript`).
 - Return partial JSX components from `views.tsx` for HTMX swaps and error fragments instead of building raw HTML strings.
 - Style components using Tailwind CSS v4 and DaisyUI v5 utility classes; put custom CSS only in `public/input.css`.
+- Follow HTMX v4 conventions documented in `.agents/skills/htmx-*` (copied from `node_modules/htmx.org/dist/skills/`): use colon-separated events (`htmx:before:request`, `htmx:after:request`, `htmx:config:request`, `hx-on:htmx:*`), `event.detail.ctx.request` for request mutation, explicit `:inherited` modifier where inheritance is needed, `hx-ignore` instead of HTMX 2's `hx-disable`, and `bunx htmx.org upgrade-check --ext .tsx -- ./src ./public` to verify compatibility.
 
 ## Logging
 
