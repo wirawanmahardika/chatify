@@ -43,6 +43,7 @@ package-lock.json
 **/*.bun
 
 storage/*
+uploads/
 logs/
 public/style.css
 tmp

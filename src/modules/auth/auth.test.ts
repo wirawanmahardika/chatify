@@ -127,5 +127,80 @@ describe('Auth Module', () => {
             expect(loginRes.headers.get('HX-Redirect')).toBe('/');
             expect(loginRes.headers.get('set-cookie')).toContain('session=');
         });
+
+        it('POST /profile/avatar, GET /avatars/:filename, dan DELETE /profile/avatar mengelola foto profil dengan aman', async () => {
+            const app = createApp();
+
+            await app.handle(
+                new Request('http://localhost/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'avatar_user', password: 'password123' }),
+                })
+            );
+
+            const loginRes = await app.handle(
+                new Request('http://localhost/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'avatar_user', password: 'password123' }),
+                })
+            );
+            const setCookie = loginRes.headers.get('set-cookie') ?? '';
+            const sessionCookie = setCookie.split(';')[0];
+
+            // Tolak format non-gambar
+            const badForm = new FormData();
+            badForm.append('avatar', new File(['hello'], 'doc.txt', { type: 'text/plain' }));
+            const badRes = await app.handle(
+                new Request('http://localhost/profile/avatar', {
+                    method: 'POST',
+                    headers: { Cookie: sessionCookie },
+                    body: badForm,
+                })
+            );
+            expect(badRes.status).toBe(400);
+            expect(await badRes.text()).toContain('Format foto tidak didukung');
+
+            // Unggah PNG valid
+            const goodForm = new FormData();
+            goodForm.append(
+                'avatar',
+                new File([new Uint8Array([137, 80, 78, 71])], 'avatar.png', { type: 'image/png' })
+            );
+            const uploadRes = await app.handle(
+                new Request('http://localhost/profile/avatar', {
+                    method: 'POST',
+                    headers: { Cookie: sessionCookie },
+                    body: goodForm,
+                })
+            );
+            expect(uploadRes.status).toBe(200);
+            expect(uploadRes.headers.get('HX-Refresh')).toBe('true');
+
+            // Profil menampilkan <img src="/avatars/...">
+            const profileRes = await app.handle(
+                new Request('http://localhost/profile', {
+                    headers: { Cookie: sessionCookie },
+                })
+            );
+            const profileHtml = await profileRes.text();
+            const match = profileHtml.match(/\/avatars\/[a-zA-Z0-9_-]+\.png/);
+            expect(match).not.toBeNull();
+
+            // Endpoint /avatars/:filename dapat diakses
+            const avatarRes = await app.handle(new Request(`http://localhost${match![0]}`));
+            expect(avatarRes.status).toBe(200);
+
+            // Hapus foto profil
+            const deleteRes = await app.handle(
+                new Request('http://localhost/profile/avatar', {
+                    method: 'DELETE',
+                    headers: { Cookie: sessionCookie },
+                })
+            );
+            expect(deleteRes.status).toBe(200);
+            expect(deleteRes.headers.get('HX-Refresh')).toBe('true');
+        });
     });
 });

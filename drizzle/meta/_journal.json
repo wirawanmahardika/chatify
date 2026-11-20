@@ -8,6 +8,13 @@
       "when": 1795035850221,
       "tag": "0000_pretty_captain_britain",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795141948026,
+      "tag": "0001_whole_spirit",
+      "breakpoints": true
     }
   ]
 }

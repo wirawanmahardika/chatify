@@ -18,6 +18,7 @@ export const roomWithDetailsSchema = z.object({
     type: roomTypeSchema,
     opponentId: z.string().nullable(),
     opponentName: z.string().nullable(),
+    opponentAvatarUrl: z.string().nullable().optional(),
     isOpponentOnline: z.boolean(),
     memberCount: z.number(),
     unreadCount: z.number(),
@@ -156,6 +157,7 @@ export type RelationStatus = z.infer<typeof relationStatusSchema>;
 export const userSearchResultSchema = z.object({
     id: z.string(),
     username: z.string(),
+    avatarUrl: z.string().nullable().optional(),
     relationStatus: relationStatusSchema,
 });
 export type UserSearchResult = z.infer<typeof userSearchResultSchema>;
@@ -165,6 +167,7 @@ export const requestFriendshipSchema = z.object({
     status: friendshipStatusSchema,
     direction: z.enum(['incoming', 'outgoing']),
     username: z.string(),
+    avatarUrl: z.string().nullable().optional(),
     createdAt: z.date(),
 });
 export type RequestFriendship = z.infer<typeof requestFriendshipSchema>;

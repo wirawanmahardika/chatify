@@ -31,6 +31,7 @@ export const usersTable = pgTable('users', {
     id: text('id').primaryKey(),
     username: text('username').notNull().unique(),
     passwordHash: text('password_hash').notNull(),
+    avatarUrl: text('avatar_url'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

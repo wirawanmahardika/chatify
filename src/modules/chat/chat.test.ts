@@ -109,12 +109,12 @@ describe('Chat Module', () => {
 
             const byUsername = await chatService.searchUsers(userA.id, 'BUDI');
             expect(byUsername).toEqual([
-                { id: userB.id, username: 'budi_dua', relationStatus: 'none' },
+                { id: userB.id, username: 'budi_dua', avatarUrl: null, relationStatus: 'none' },
             ]);
 
             const byId = await chatService.searchUsers(userA.id, userB.id);
             expect(byId).toEqual([
-                { id: userB.id, username: 'budi_dua', relationStatus: 'none' },
+                { id: userB.id, username: 'budi_dua', avatarUrl: null, relationStatus: 'none' },
             ]);
 
             await chatService.addFriendship(userA.id, userB.id);

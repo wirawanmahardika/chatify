@@ -66,6 +66,7 @@ export class ChatService {
             .select({
                 id: usersTable.id,
                 username: usersTable.username,
+                avatarUrl: usersTable.avatarUrl,
             })
             .from(usersTable)
             .where(
@@ -118,6 +119,7 @@ export class ChatService {
             .map((u) => ({
                 id: u.id,
                 username: u.username,
+                avatarUrl: u.avatarUrl,
                 relationStatus: relationMap.get(u.id) ?? 'none',
             }));
     }
@@ -129,7 +131,11 @@ export class ChatService {
         if (currentUserId === targetId) return null;
 
         const [target] = await db
-            .select({ id: usersTable.id, username: usersTable.username })
+            .select({
+                id: usersTable.id,
+                username: usersTable.username,
+                avatarUrl: usersTable.avatarUrl,
+            })
             .from(usersTable)
             .where(eq(usersTable.id, targetId))
             .limit(1);
@@ -152,6 +158,7 @@ export class ChatService {
         return {
             id: target.id,
             username: target.username,
+            avatarUrl: target.avatarUrl,
             relationStatus,
         };
     }
@@ -320,18 +327,24 @@ export class ChatService {
 
         const oppositeIds = rows.map((r) => (r.senderId === userId ? r.receiverId : r.senderId));
         const users = await db
-            .select({ id: usersTable.id, username: usersTable.username })
+            .select({
+                id: usersTable.id,
+                username: usersTable.username,
+                avatarUrl: usersTable.avatarUrl,
+            })
             .from(usersTable)
             .where(inArray(usersTable.id, oppositeIds));
-        const usernameMap = new Map(users.map((u) => [u.id, u.username]));
+        const userMap = new Map(users.map((u) => [u.id, u]));
 
         return rows.map((row) => {
             const oppositeId = row.senderId === userId ? row.receiverId : row.senderId;
+            const info = userMap.get(oppositeId);
             return {
                 oppositeId,
                 status: 'blocked' as const,
                 direction: row.senderId === userId ? ('outgoing' as const) : ('incoming' as const),
-                username: usernameMap.get(oppositeId) ?? 'Pengguna',
+                username: info?.username ?? 'Pengguna',
+                avatarUrl: info?.avatarUrl ?? null,
                 createdAt: row.createdAt,
             };
         });
@@ -364,19 +377,25 @@ export class ChatService {
         );
 
         const users = await db
-            .select({ id: usersTable.id, username: usersTable.username })
+            .select({
+                id: usersTable.id,
+                username: usersTable.username,
+                avatarUrl: usersTable.avatarUrl,
+            })
             .from(usersTable)
             .where(inArray(usersTable.id, oppositeIds));
 
-        const usernameMap = new Map(users.map((u) => [u.id, u.username]));
+        const userMap = new Map(users.map((u) => [u.id, u]));
 
         return rows.map((row) => {
             const oppositeId = row.senderId === userId ? row.receiverId : row.senderId;
+            const info = userMap.get(oppositeId);
             return {
                 oppositeId,
                 status: row.status,
                 direction: row.receiverId === userId ? 'incoming' : 'outgoing',
-                username: usernameMap.get(oppositeId) ?? 'Pengguna',
+                username: info?.username ?? 'Pengguna',
+                avatarUrl: info?.avatarUrl ?? null,
                 createdAt: row.createdAt,
             };
         });
@@ -520,6 +539,7 @@ export class ChatService {
             .select({
                 userId: usersTable.id,
                 username: usersTable.username,
+                avatarUrl: usersTable.avatarUrl,
                 role: roomMembersTable.role,
             })
             .from(roomMembersTable)
@@ -663,19 +683,24 @@ export class ChatService {
                 roomId: roomMembersTable.roomId,
                 userId: usersTable.id,
                 username: usersTable.username,
+                avatarUrl: usersTable.avatarUrl,
             })
             .from(roomMembersTable)
             .innerJoin(usersTable, eq(roomMembersTable.userId, usersTable.id))
             .where(inArray(roomMembersTable.roomId, roomIds));
 
         const memberCountMap = new Map<string, number>();
-        const opponentMap = new Map<string, { id: string; username: string }>();
+        const opponentMap = new Map<
+            string,
+            { id: string; username: string; avatarUrl: string | null }
+        >();
         for (const member of members) {
             memberCountMap.set(member.roomId, (memberCountMap.get(member.roomId) ?? 0) + 1);
             if (member.userId !== userId && !opponentMap.has(member.roomId)) {
                 opponentMap.set(member.roomId, {
                     id: member.userId,
                     username: member.username,
+                    avatarUrl: member.avatarUrl ?? null,
                 });
             }
         }
@@ -728,6 +753,7 @@ export class ChatService {
                 type: room.type,
                 opponentId: opponent?.id ?? null,
                 opponentName: opponent?.username ?? null,
+                opponentAvatarUrl: opponent?.avatarUrl ?? null,
                 isOpponentOnline: opponent ? onlineUserIds.has(opponent.id) : false,
                 memberCount: memberCountMap.get(room.id) ?? 1,
                 unreadCount: unreadCountMap.get(room.id) ?? 0,
@@ -853,6 +879,7 @@ export class ChatService {
             .select({
                 userId: usersTable.id,
                 username: usersTable.username,
+                avatarUrl: usersTable.avatarUrl,
             })
             .from(roomMembersTable)
             .innerJoin(usersTable, eq(roomMembersTable.userId, usersTable.id))
@@ -866,6 +893,7 @@ export class ChatService {
             type: room.type,
             opponentId: opponent?.userId ?? '',
             opponentName: opponent?.username ?? '',
+            opponentAvatarUrl: opponent?.avatarUrl ?? null,
             isOpponentOnline: opponent ? onlineUserIds.has(opponent.userId) : false,
             memberCount: members.length,
         };

@@ -29,6 +29,7 @@ export class AuthService {
             id: idGenerator6Digit.generateId(countUser),
             username: dto.username,
             passwordHash,
+            avatarUrl: null,
             createdAt: new Date(),
         };
 
@@ -97,6 +98,20 @@ export class AuthService {
     async getUserById(id: string): Promise<User | null> {
         const foundUsers = await db.select().from(usersTable).where(eq(usersTable.id, id));
         return foundUsers[0] || null;
+    }
+
+    async updateAvatar(userId: string, avatarUrl: string | null): Promise<User> {
+        const [updated] = await db
+            .update(usersTable)
+            .set({ avatarUrl })
+            .where(eq(usersTable.id, userId))
+            .returning();
+
+        if (!updated) {
+            throw new AuthError('Pengguna tidak ditemukan');
+        }
+        logger.info('Foto profil diperbarui', { module: 'auth', userId });
+        return updated;
     }
 }
 

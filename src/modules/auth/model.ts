@@ -4,6 +4,7 @@ export const userSchema = z.object({
     id: z.string(),
     username: z.string(),
     passwordHash: z.string(),
+    avatarUrl: z.string().nullable().optional(),
     createdAt: z.date(),
 });
 
@@ -38,3 +39,7 @@ export const loginBodySchema = z.object({
 });
 
 export type LoginBody = z.infer<typeof loginBodySchema>;
+
+export const avatarFilenameParamsSchema = z.object({
+    filename: z.string().regex(/^[a-zA-Z0-9_-]+\.[a-z0-9]+$/i, 'Nama file avatar tidak valid'),
+});
