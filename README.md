@@ -104,6 +104,11 @@ Secara default, `src/config.ts` sudah menyediakan konfigurasi development yang l
 | `DB_URL` | Connection string PostgreSQL utama (**wajib saat `production`**) | `postgres://chatify:chatify_dev_password@localhost:5433/chatify` |
 | `TEST_DB_URL` | Connection string PostgreSQL khusus pengujian | `postgres://chatify:chatify_dev_password@localhost:5433/chatify_test` |
 | `COOKIE_SECRET` | Kunci penandatanganan cookie sesi, min. 32 karakter (**wajib saat `production`**) | *(dev secret bawaan)* |
+| `S3_ENDPOINT` | Endpoint S3-compatible object storage (AWS S3, Cloudflare R2, MinIO, dll.) | *(opsional, fallback lokal)* |
+| `S3_REGION` | Region bucket S3 | `us-east-1` |
+| `S3_BUCKET` | Nama bucket S3 untuk menyimpan avatar & lampiran chat | *(opsional)* |
+| `S3_ACCESS_KEY_ID` | Access Key ID untuk S3 storage | *(opsional)* |
+| `S3_SECRET_ACCESS_KEY` | Secret Access Key untuk S3 storage | *(opsional)* |
 
 ### 5. Migrasi Database & Build CSS
 Jalankan migrasi skema Drizzle ke database dan kompilasi Tailwind CSS:

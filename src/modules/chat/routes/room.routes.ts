@@ -1,7 +1,7 @@
-import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename } from 'node:path';
 import { Elysia } from 'elysia';
 import { logger } from '../../../shared/logger';
+import { storage } from '../../../shared/storage';
 import { ModalAlert } from '../../../shared/components/modal-alert';
 import { ChatServiceError } from '../errors';
 import { contactService } from '../services/contact.service';
@@ -26,7 +26,6 @@ import {
 import { broadcastMessageToRoom, getOnlineUserIds } from '../presence';
 import { chatSessionPlugin } from '../session';
 
-const UPLOAD_DIR = join(process.cwd(), 'storage', 'uploads');
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 const ALLOWED_UPLOAD_MIME: Record<string, { ext: string; type: MessageType }> = {
@@ -298,10 +297,8 @@ export const roomRoutes = new Elysia()
                     });
                 }
 
-                mkdirSync(UPLOAD_DIR, { recursive: true });
                 const storedFilename = `${crypto.randomUUID()}.${mimeRule.ext}`;
-                const filePath = join(UPLOAD_DIR, storedFilename);
-                await Bun.write(filePath, file);
+                await storage.upload(`uploads/${storedFilename}`, file);
 
                 const safeOriginalName =
                     file.name.replace(/[^\w.\-\s]/g, '_').slice(0, 100) || storedFilename;
@@ -351,13 +348,14 @@ export const roomRoutes = new Elysia()
                 return 'Akses ditolak';
             }
 
-            const file = Bun.file(join(UPLOAD_DIR, filename));
-            if (!(await file.exists())) {
+            const safeName = basename(filename);
+            const response = await storage.getResponse(`uploads/${safeName}`);
+            if (!response) {
                 set.status = 404;
                 return 'File tidak ditemukan';
             }
 
-            return file;
+            return response;
         },
         { params: uploadFilenameParamsSchema }
     )

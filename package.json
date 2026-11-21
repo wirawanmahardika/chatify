@@ -5,7 +5,11 @@
     "scripts": {
         "dev": "bun run --watch src/index.ts",
         "tailwind": "bunx @tailwindcss/cli -i ./public/input.css -o ./public/style.css --watch",
-        "build": "bunx @tailwindcss/cli -i ./public/input.css -o ./public/style.css --minify"
+        "build": "bunx @tailwindcss/cli -i ./public/input.css -o ./public/style.css --minify",
+        "db:generate": "bunx drizzle-kit generate",
+        "db:migrate": "bunx drizzle-kit migrate",
+        "db:push": "bunx drizzle-kit push",
+        "db:studio": "bunx drizzle-kit studio"
     },
     "dependencies": {
         "@elysia/static": "^1.4.11",

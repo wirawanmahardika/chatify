@@ -1,13 +1,12 @@
 import { Elysia } from 'elysia';
-import { mkdirSync, unlinkSync } from 'fs';
-import { basename, join } from 'path';
+import { basename } from 'path';
 import { logger } from '../../../shared/logger';
+import { storage } from '../../../shared/storage';
 import { ModalAlert } from '../../../shared/components/modal-alert';
 import { authService } from '../service';
 import { avatarFilenameParamsSchema } from '../model';
 import { ProfilePage } from '../views';
 
-const AVATAR_UPLOAD_DIR = join(process.cwd(), 'uploads', 'avatars');
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const ALLOWED_AVATAR_MIME: Record<string, string> = {
     'image/jpeg': 'jpg',
@@ -16,15 +15,11 @@ const ALLOWED_AVATAR_MIME: Record<string, string> = {
     'image/webp': 'webp',
 };
 
-function removeOldAvatarFile(avatarUrl?: string | null) {
+async function removeOldAvatarFile(avatarUrl?: string | null) {
     if (!avatarUrl || !avatarUrl.startsWith('/avatars/')) return;
     const oldFilename = basename(avatarUrl);
     if (!oldFilename) return;
-    try {
-        unlinkSync(join(AVATAR_UPLOAD_DIR, oldFilename));
-    } catch {
-        // Ignore if file already missing
-    }
+    await storage.remove(`avatars/${oldFilename}`);
 }
 
 export const profileRoutes = new Elysia()
@@ -78,14 +73,12 @@ export const profileRoutes = new Elysia()
                 });
             }
 
-            mkdirSync(AVATAR_UPLOAD_DIR, { recursive: true });
             const storedFilename = `avatar-${user.id}-${crypto.randomUUID()}.${ext}`;
-            const filePath = join(AVATAR_UPLOAD_DIR, storedFilename);
-            await Bun.write(filePath, file);
+            await storage.upload(`avatars/${storedFilename}`, file);
 
             const avatarUrl = `/avatars/${storedFilename}`;
             await authService.updateAvatar(user.id, avatarUrl);
-            removeOldAvatarFile(user.avatarUrl);
+            await removeOldAvatarFile(user.avatarUrl);
 
             set.headers['HX-Refresh'] = 'true';
             return ModalAlert({ status: 'success', msg: 'Foto profil berhasil diperbarui' });
@@ -110,7 +103,7 @@ export const profileRoutes = new Elysia()
 
         try {
             await authService.updateAvatar(user.id, null);
-            removeOldAvatarFile(user.avatarUrl);
+            await removeOldAvatarFile(user.avatarUrl);
             set.headers['HX-Refresh'] = 'true';
             return ModalAlert({ status: 'success', msg: 'Foto profil berhasil dihapus' });
         } catch (error) {
@@ -123,14 +116,14 @@ export const profileRoutes = new Elysia()
         '/avatars/:filename',
         async ({ params: { filename }, set }) => {
             const safeName = basename(filename);
-            const filePath = join(AVATAR_UPLOAD_DIR, safeName);
-            const file = Bun.file(filePath);
-            if (!(await file.exists())) {
+            const response = await storage.getResponse(`avatars/${safeName}`, {
+                cacheControl: 'public, max-age=86400',
+            });
+            if (!response) {
                 set.status = 404;
                 return 'Avatar tidak ditemukan';
             }
-            set.headers['Cache-Control'] = 'public, max-age=86400';
-            return file;
+            return response;
         },
         { params: avatarFilenameParamsSchema }
     );
